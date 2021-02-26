@@ -154,27 +154,24 @@ int birp_to_ascii(FILE *in, FILE *out) {
     int height;
 
     BDD_NODE *result;
-    if((result = img_read_birp(in, &width, &height)) != NULL) {
-        int heightCntr = 0;
-        for(int i = 0; i < (width * height); i ++) {
-            int colorResult = bdd_apply(result, i / width, i % height);
-            if(heightCntr == width){
-                printf("%c", '\n');
-                heightCntr = 0;
-            }
 
-            if(colorResult >= 0 && colorResult <= 63) {
-                printf("%c",' ');
-            }else if(colorResult >= 64 && colorResult <= 127) {
-                printf("%c",'.');
-            }else if(colorResult >= 128 && colorResult <= 191) {
-                printf("%c",'*');
-            }else if(colorResult >= 192 && colorResult <= 255) {
-                printf("%c",'@');
-            }else{
-                return -1;
+    if((result = img_read_birp(in, &width, &height)) != NULL) {
+        for(int i = 0; i < height; i ++) {
+            for(int j = 0; j < width; j++) {
+                int colorResult = bdd_apply(result, i, j);
+                if(colorResult >= 0 && colorResult <= 63) {
+                    printf("%c",' ');
+                }else if(colorResult >= 64 && colorResult <= 127) {
+                    printf("%c",'.');
+                }else if(colorResult >= 128 && colorResult <= 191) {
+                    printf("%c",'*');
+                }else if(colorResult >= 192 && colorResult <= 255) {
+                    printf("%c",'@');
+                }else{
+                    return -1;
+                }
             }
-            ++heightCntr;
+            printf("%c", '\n');
         }
         return 0;
     }
