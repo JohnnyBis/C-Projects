@@ -1,0 +1,41 @@
+** 10/02/92 version 3.9: make extensive use of new Chess macros
+(version 1.2 mandatory) by Piet Tutelaers. The TeX output is much more
+readable and edit-able by a human being.
+
+** 25/11/91 a bunch of changes: the shortened algebraic has been
+improved, with important code redesign. The shortened algebraic is no
+really shortened algebraic.
+
+** 21/11/91 Release 3.4 Corrected a bug introduced in versiopn 3.3,
+that cause algebraic notation to indicate promotion. Also rename
+HELPFILE to notation.hlp and demo files now end with .ntn instead of
+.txt. 
+
+** 13/11/91 Release 3.3. Corrected a bug that forbidded promotion.
+Enhanced errors messages. Now promotion is by default to a queen:
+"h8=" is equivalent to "h8=Q".
+
+** 11/05/91 NEW VERSION. Many many improvements: en-passant,
+promotion. Split the source in many differents file. Programming style
+improved etc...
+
+** 24/04/91 Cleaned-up a few bugs, and added -i and -v options. 
+
+** 16/04/91 NEW NEW version: now handles variations and codified
+comment, as well as specials strings as title, subtitle, score and
+comments.
+
+** 12/04/91 added the following languages: czech, hungarian, polish,
+romanian, FIDE. Thank Lael.
+
+** 20/03/91 gnu driver has change. It is now named "xchess". The "gnu"
+name is now used for "gnuan" type files.
+
+** much improved latex output
+
+** improved internal move generation
+
+** added @special keyword, to directly include text in output
+
+** 24/01/91 The program should be ANSI-C. At last, it compiles with "gcc
+-ansi -pedantic"

@@ -1,0 +1,15 @@
+==223552== Memcheck, a memory error detector
+==223552== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==223552== Using Valgrind-3.15.0 and LibVEX; rerun with -h for copyright info
+==223552== Command: bin/notation rsrc/algebric.ntn
+==223552== 
+@(#)notation.c	3.9 (C) Henry Thomas.   Release 3     Dated 12/10/91
+==223552== 
+==223552== HEAP SUMMARY:
+==223552==     in use at exit: 16,458 bytes in 3 blocks
+==223552==   total heap usage: 92 allocs, 89 frees, 34,130 bytes allocated
+==223552== 
+==223552== For a detailed leak analysis, rerun with: --leak-check=full
+==223552== 
+==223552== For lists of detected and suppressed errors, rerun with: -s
+==223552== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)

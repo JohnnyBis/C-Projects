@@ -1,8 +1,8 @@
 image: hwrunner:latest
 variables:
     GIT_SSL_NO_VERIFY: "true"
-    EXEC: birp
-    HW_DIR: hw1
+    EXEC: notation
+    HW_DIR: hw2
     CPU_LIMIT: 60
     FILE_LIMIT: 1000000
 before_script:

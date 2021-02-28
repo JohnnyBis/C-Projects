@@ -1,0 +1,14 @@
+Things to do:
+URGENT
+ - fix chess/gnuan output for promotion
+ - rebuild latex output to fit better with Piet Tutelaers macros.
+
+LATER
+ - command line specification of chess symbols for a new language
+ - to have configuration file
+ - automatically add sufixes (.tex, ps, .asc, .roff .xboard.save ...) to
+output file
+ - add a xbord save-position format
+ - detect check
+ - a binary save format, allowing another program to interactively
+replay the game (this should lead to a kind of "ChessBase" program ).

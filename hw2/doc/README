@@ -1,0 +1,131 @@
+** DESCRIPTION
+  This program is is chess preprocessor. It reads chess games, either
+in full algebraic or shortened notation (ie Nf1-g3 or f1g3 or Ng3) and
+is able to output the games and/or the board af any move, in ascii,
+postscript, TeX, or nroff. It also can generate output for the gnuan
+and xboard programs. It is multi-lingual (european) for piece
+identification. The program understand french, english, german,
+spanish dutch, italian, polish etc. The program also handle variations
+and symbolized comments.
+
+This is a freeware program. You have the right to modify it, give it,
+provided you don't modify the copyright notice and my name still
+remains.  The distribution has 4 shar-type files.
+
+** COMPATIBILITY
+  This program is ok on UNIX (Sun Sparc Station and Sun-3). It uses
+standard C, and fonctions declarations are done in both K&R-C and
+ANSI-C.  It won't difficult to compile on a IBM-PC with
+MSC (I easily get to work an older function with TURBO-C).
+
+** QUICK USE
+  Anyway, you want to try quickly the program, issue the command
+"make" in this directory, and then type "notation algebric.txt" to
+test the programm on Kasparov/Karpov game 13 (Lyon, November 1990).
+If you want to install it completely ( TeX, helpfile etc), edit the
+Makefile and type "make install".  Read and modify the makefile for
+customizing notation to your national language and library path.  If
+you want a complete manual, read notation.doc.  To print a postscript
+file, merge the ps font definition and the output of the Notation
+program (say foo.ps) and send it to the printer (for instance "cat
+Cheq foo.ps | lpr").
+
+** SOURCES
+  NOTA: <version number> is currently 3.9
+
+  They are posted to "comp.sources.misc". You can then get them from
+any site archiving "comp.sources.misc".
+
+  They are available by anonymous ftp on wuarchive.wustl.edu,
+(user:anonymous, password:<your address>). The path is
+"pub/Notation.tar.Z" ou "pub/Notation<version number>.tar.Z"
+The patch are also available as "Notation-patch<version number>.shar.Z".
+
+ ** I expect the source to show up soon on garbo.uwasa.fi.
+If you're in Europe, you can get notation from the server
+garbo.uwasa.fi:
+-- by anonymous ftp with path /unix/util/notation.tar.Z
+-- by e-mail by sending the message
+
+        mail mailserv@garbo.uwasa.fi
+        Subject:garbo-request
+        send unix/util/notation.tar.Z
+
+        (or  send unix/util/notation<version number>.tar.Z)
+
+   You will receive the uuencoded-split program within hours.
+
+  You can also get them by mail, from "hthomas@ph.tn.tudelft.nl". But
+I prefer you try the others before.
+
+
+** IMPORTANT
+  If you want to use PostScript or LaTeX, you need two packages not
+provided here. However, here is a way to get them:
+
+**** Postscript: 
+  You need the font "Cheq", freely distributed by Adobe.  Send a mail
+to "ps-file-server@adobe.com" with the body "send Programs
+chessfont.ps". For use with "notation", rename the file "Cheq".
+
+------------------------------------------------------------------
+chessfont.ps              58548 Jun 22 1989
+    This is the Adobe chess font "Cheq", created by John Renner. It 
+    is an ASCII downloadable version of the font that is not in any 
+    particular font format for a specific platform. See also
+    "chessfontUNIX.shar" and "chessfontMAC.shar" for the font bundled 
+    with other useful files like screen fonts and AFM files. If you 
+    just want the font, it is available in this file separately for 
+    convenience.
+------------------------------------------------------------------
+
+**** LaTeX: 
+  You need the chess fonts designed by Piet Tutalaers
+"rcpt@urc.tue.nl". YOU NEED VERSION 1.2 (released 10/02/91). The
+complete distribution is available
+
+-- by ftp : on sol.cs.ruu.nl (131.211.80.5) with path TEX/chess.tar.Z
+(please restrict access to weekends or evening/night (i.e.  between
+about 2000 and 0.900 UTC)).
+
+------------------------------------------------------------------
+-rw-r--r--  1 piet     staff        2984 Dec  3 10:11 chess.README
+-rwxr--r--  1 piet     staff      129679 Dec  3 15:57 chess.tar.Z
+------------------------------------------------------------------
+
+-- by e-mail : send the following message to 
+mail-server@cs..ruu.nl (or uunet!mcsun!hp4nl!ruuinf):
+
+begin
+path john@highbrown.edu
+send TEX/chess.tar.Z
+end
+
+The path command can be deleted if we receive a valid from address in
+your message. If this is the first time you use the mail server, we
+suggest you first issue the request:
+send help
+
+
+** DOCUMENTATION
+  See the file notation.doc for any info
+
+** COPYRIGHT
+
+  This is a freeware program. Commercial use is prohibited. It is free
+for non-commercial use.  You have the right to modify it, give it,
+provided you don't modify the copyright notice and my name still
+remains clearly indicated. For the others packages (Cheq and chess
+font) refer to the original copyright notice.
+
+** USER FEEDBACK
+
+  If you're happy with this program, let me know :-) Thanks.
+
+
+** MODIFICATIONS
+
+  I hope the program to be clear enough to be easily modified. Anyway,
+I would like to centralize modification, in order to manage an
+up-to-date version. So send me the modification, in forms of diff
+files, if possible, along with the version number of the program.

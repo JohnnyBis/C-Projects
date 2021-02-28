@@ -1,0 +1,50 @@
+% Name: notation.tex
+% Copyright: %W% (C) Henry Thomas.	Release %R%	Dated %G%
+% Version: %R%
+% Purpose: Definition file for notation
+% Comment: Relies on Piet Tutelaers macros for chess typesetting
+% Author: Henry Thomas
+% Date: %G%
+%
+%% Some symbols
+\newcommand{\FigDash}{{--}}
+\newcommand{\FigCapt}{$\times$}
+\newcommand{\FigDots}{$\ldots$}
+\newcommand{\FigDot}{\char46}
+%
+% Redefine chess.sty to get similar layout as in Informator
+\makeatletter
+\gdef\@dots{\ldots}
+\resetat
+%
+% These macros allows a move number to be bolfaced in the main line,
+% and typset in roman in the variations (like in Informant)
+\newcommand{\mn}[1]{{\OutLine #1\char46}}
+%
+% Some macros to improve readability...
+\newcommand{\OutLine}{\bf}
+\newenvironment{Mainline}[2]{\newcommand{\result}{#1}%
+   \newcommand{\commentator}{#2}\begin{chess}}%
+   {\end{chess}\finito{\result}{\commentator}}
+\newenvironment{Variation}{{\OutLine
+[}\begingroup\renewcommand{\OutLine}{\rm}\ignorespaces}%
+   {\endgroup{\OutLine ]}\renewcommand{\OutLine}{\bf}\ignorespaces}
+\newenvironment{diagram}{\begin{nochess}}{$$\showboard$$\end{nochess}}
+\newcommand{\finito}[2]{{\bf\hfill#1\hfill[#2]\par}}
+
+\setlength{\parindent}{0pt}
+
+% If you compiled notation with the flag -DOLDTEX, you will need to
+% define these macros.
+% They allow to typeset in horizontal or vertical mode. You ``simply''
+% have to define them.
+%
+\newcommand{\MoveNumber}[1]{{#1}~}
+\newcommand{\WhiteMove}[1]{{#1}\ }
+\newcommand{\BlackMove}[1]{{#1}\ }
+%
+% These macros are for tiles and score formatting.
+\newcommand{\ChessTitle}[1]{\begin{center}{\large\bf #1}\end{center}}
+\newcommand{\ChessSubTitle}[1]{\begin{center}{\sc #1}\end{center}}
+\newcommand{\ChessScore}[1]{{\bf #1}}
+%

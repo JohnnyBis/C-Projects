@@ -1,0 +1,6 @@
+comment	shorthand 	english translation
+------------------------------------------------
+#define CHESSSYMB(LET,LASC,SASC,TEX,PS,ENG,FRA)\
+LASC		SASC		ENG
+#include "chesssymb.def"
+#undef CHESSSYMB

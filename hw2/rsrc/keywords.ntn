@@ -1,0 +1,23 @@
+[Example of keywords use]
+[absolutely non-sense game]
+e2-e4 c7c6
+@showboard
+@clearboard
+@showboard
+@configwhite
+ d4    Nf6
+ Nc3   @showboard d5
+@configblack
+ Kg8
+@startplay
+@whitesmove
+Nc3-b1
+@showboard
+@blacksmove
+Rg8-g7 @showboard d5-d6
+Rg7-f6
+
+@null
+
+
+

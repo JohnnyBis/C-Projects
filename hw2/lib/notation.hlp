@@ -1,0 +1,20 @@
+Command line options: 
+<inputfile>	: specify the input file. If none, keyboard is assumed
+-a		: algebraic move notation output
+-s		: shortened move notation output
+-f <language>	: specify the chess symbol input language: french,
+	english, italian, spanish, german, dutch, czech, hungarian, polish,
+	romanian, FIDE. (for portuguese, use spanish)  
+-t <language>	: specify the chess symbol output language (same
+options as input language).
+-o <outputfile>	: specify the output file. If none, screen is assumed
+-c <number>[,<number]	: specify the number of the moves to display
+	the board. if none, board is diplayed at end of file
+-e <number>     : display the board at the move number and then stops
+-b		: display only the board, not the moves
+-d <drivername>	: specify the output driver: ascii,postscript, tex
+(latex), roff, xchess (xchess save format), gnu (gnuan input format) 
+-i              : suppress headers/footer in output (useful
+		for tex/ps drivers)
+-h		: shows this help
+-v		: shows version number

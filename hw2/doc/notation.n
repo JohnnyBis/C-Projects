@@ -1,0 +1,406 @@
+.\" @(#)notation.n	3.9 (C) Henry Thomas   Release 3     Dated 12/10/91
+.TH notation n "10 December 1990"
+
+.SH NAME
+
+notation \- transform chess notation
+
+.SH SYNOPSYS
+
+notation [input file] [-o output file] [-options...]
+
+.SH DESCRIPTION 
+
+This program reads chess games, either full algebraic or shortened (ie
+Nf1-g3 or Ng3) and is able to ouptut the board after any move, in
+either ascii , postscript, nroff, latex, xboard or gnuan save
+format. This program is also multi-lingual: it handles english,
+french, spanish, german, italian, dutch, romanian etc... symbols. So
+nearly all europeans languages are understood (except greek and
+russian, but I can't handle greek or cyrillic on ascii computers, eh).
+
+.SH OPTIONS
+Command line options:
+
+.TP 8
+.B -a		
+algebraic move notation output
+
+.TP 8
+.B -s		
+shortened move notation output
+
+.TP 8
+.B -f <language>	
+specifies the chess symbol input language. The language can be any of
+\fBfrench\fR, \fBenglish\fR, \fBitalian\fR, \fBspanish\fR,
+\fBgerman\fR, \fBdutch\fR, \fBczech\fR, \fBhungarian\fR, \fBpolish\fR,
+\fBromanian\fR, \fBFIDE\fR.
+
+.TP 8
+.B -t <language>	
+specifies the chess symbol output language. Same options as input language.
+
+.TP 8
+.B <inputfile>
+specifies the input file. If none, keyboard is assumed.
+
+.TP 8
+.B -o <outputfile>
+specifies the output file. If none, screen is assumed.
+
+.TP 8
+.B -c <number>[,<number]	
+specifies the \fBnumber\fR of the moves at which  to display the board. If
+none, board 
+is displayed at end of file. Several numbers may be specified, as a
+comma-separated list.
+
+.TP 8
+.B -e <number>     
+display the board at the move \fBnumber\fR and then stops
+
+.TP 8
+.B -b		
+display only the board, not the moves
+
+.TP 8
+.B -d <drivername>	
+specifies the output driver. It can be any of the following:
+\fBascii\fR, \fBpostscript\fR, \fBtex\fR, \fBroff\fR, \fBxchess\fR
+(xchess or xboard save format), \fBgnu\fR (gnuan input format).
+
+.TP 8
+.B -i		
+suppress headers/footers printing. This is useful with tex or ps
+drivers, if you want to include the output in a larger file.
+
+.TP 8
+.B -v		
+displays version number and exits
+
+.TP 8
+.B -h		
+displays help screen
+
+.SH "INPUT LANGUAGE"
+	
+The input language has four types of input: moves, move numbers,
+comments and keywords. All these are separated by blanks, TAB, CR, 
+commas and semi-columns.
+
+.TP 8 
+.B move format:
+ The moves are accepted in algebraic or shortened algebraic notation.
+That means that the following are equivalent and accepted \fB Nf1-g3
+N-f1xg3, Nxg3, Ng3, Nfg3\fR. The ugly english notation \fBP-K4\fR is
+not understood, neither by the program nor me.  The program allows and
+parse variations.
+
+Nota: provided you remove the three first line, xchess save format is
+accepted. 
+
+ Also you can have move comments. So \fBKg4!!, Ra5++\fR are correct,
+as \fBKg4 !!, Ra5 ++\fR.  Castling is recognized with the following
+\fB0-0 O-O o-o 0-0-0 O-O-O o-o-o\fR.  "En passant" and promotion are
+now correctly handled. For "en passant", you just indicate them move
+and it is correctly parsed ex: "d5-d7 e5xd6". Promotion is indicated
+with the "=" sign followed by the new piece name. So you just write
+"a7-a8=Q" or "d8=K". If you omit the piece name, promotion is made to
+Queen by default; so "a8=" is equivalent to "a8=Q".
+
+For example, see the files \fBalgebraic.txt\fR,
+\fBshortened.txt\fR and \fBboudy.txt\fR
+
+.TP 8
+.B move numbers:
+ move numbers are in the form \fB23.\fR or \fB36\fR. The full point is
+optional. Move numbers are checked against internal move counter.
+
+.TP 8 
+.B comments: 
+  chess codified comments can be put in the input.  There are two ways
+or doing so. The first one is to use the usual chess notation \fB!?,
+!, ,+, ++, #, ep, etc \fR... However, international magazine use other
+no-ascii symbols : triangles, squares, infinity and so on. You can
+have these symbols \fB on LaTeX output\fR. This is the second way. I
+defined three letters abbreviations for such symbols (look at the file
+\fBchesssymb.txt\fR for an extensive description). These abbreviations
+are following a \fB$\fr sign. For instance \fB$wsb\fR means "white
+slightly better".  This is, IMHO, a very interesting feature of the
+program.
+
+.TP 8
+.B text: 
+ plain text, such as explanations etc... must be enclosed in brackets
+or parenthesis \fB[Here Karpov made a very bright move ...]\fR
+\fB(this is also a comment)\fR. Comments are not parsed, but directly
+inserted in the output, for the \fBascii\fR ,\fBnroff\fR and
+\fBlatex\fR drivers. The closing characters (ie "]" or ")" depending
+of the opening characters may be placed in the text, provided it is
+escaped by a "\\" ( so you input "\\]" or "\\)" ).
+
+.TP 8
+.B variations:
+ You can have variations in the source. Variation are in enclosing \fB
+{ } \fR. You can have up to three level of variation. It would be
+enough for human players. A variation always follows the move. Here is
+an exemple of variation : \fB25. Rb2 { Ce4 de4 26 Fc3 Fa3! 27. Ff6 Tb3
+} Fa3!\fR
+
+.TP 8
+.B keywords:
+ You can insert keywords in the input text to precisely define what
+you want: displaying the board, configuring it... Keywords are
+detailled in the next section.
+
+.SH KEYWORDS
+all keywords are prefixed with \fB@\fR
+.TP 8
+.B @startplay
+ begins the play. Obligatory after a \fB@configxxx\fR keyword.
+.TP 8
+.B @clearboard
+clears the board. Used prior to any \fB@configxxx\fR.
+.TP 8
+.B @showboard
+displays the board. Can be used anywhere
+.TP 8
+.B @whitesmove
+tells the program that is the white's turn of play. Useful after a
+\fB@configxxx\fR and \fB@startplay\fR
+.TP 8
+.B @blacksmove
+tells the program that it is black's turn
+.TP 8
+.B @configwhite
+initializes configuration of white side. Pieces are then expected, in
+form of (optional for Pawn) name, the position. Example
+\fB@configwhite Ke3 Rg8 e4\fR.
+.TP 8
+.B @configblack
+initializes configuration of black side. Pieces are then expected, in
+form of (optional for Pawn) name, the position. Example:
+\fB@configblack Ka8 Nf6 e6\fR. 
+
+Note that black pieces are given in uppercase!
+
+.TP 8
+.B @default
+resets the board to the default start configuration.
+.TP 8
+
+.TP 8
+.B @title{ <title>}
+this keyword accept one argument enclosed in {}. Example:
+\fB@title{Karpov-Kasporov}\fR. Note that you can put \fB}\fR in the
+text itself, if it is escaped (\fB\\}\fR).
+
+.TP 8
+.B @subtitle{ <subtitle>}
+prints a subtitle
+
+.TP 8
+.B @score{ <text> }
+prints the score.
+
+.TP 8
+.B @language{french|english|...|FIDE}
+this keyword specifies in which language the pieces names are
+expressed. This option overides command-line option.
+
+.B @special
+all following text up to the next cariage return is not processed, but
+instead directly print. This allows to insert comments in ascii files,
+or tex commands when tex output is selected. 
+.TP 8
+.B @null
+null keyword. Does nothing. Used for convenience in programming.
+
+
+See the file \fBkeywords.txt\fR for an example of keywords use.
+
+.SH "NATIONAL LANGUAGES"
+
+Here are the symbols used in the differents languages. () mean
+optional in the input.
+
+
+english-name	King	Queen	Rook	Bishop	Knight	Pawn
+english		K	Q	R	B	N	(P)
+french		R	D	T	F	C	(P)
+italian		R	D	T	A	C	(P)
+spanish		R	D	T	A	C	(P)
+german		K	D	T	L	S	(B)
+dutch		K	D	T	L	P	(O)
+czech		K	D	V	S	J	(P)
+hungarian	K	V	B	F	H	(G)
+polish		K	H	W	G	S	(P)
+romanian	R	D	T	N	C	(P)
+FIDE		K	D	T	S	N	(P)
+
+.SH DRIVERS
+
+.TP 8
+.B ascii
+ this is the default driver, it outputs move and boards.
+
+.TP 8
+.B postscript
+  It generates a file using the font file \fBCheq\fR licensed for free
+by Adobe. It is only able to display one board per run. Move are not
+displayed. You need the font "Cheq", freely distributed by Adobe.
+Send a mail to "ps-file-server@adobe.com" with the body "send Programs
+chessfont.ps".
+
+.TP 8
+.B tex 
+  This is a \fBlatex\fR driver. It uses the TeX/LaTeX chess macros
+designed by Piet Tutalaers "rcpt@urc.tue.nl". The complete
+distribution is available on sol.cs.ruu.nl (131.211.80.5) with path
+TEX/chess.tar.Z. Refer to your local latex guru to install it.
+
+.TP 8
+.B roff
+  This is a driver for nroff output. It is crude, but it works. Moves and
+boards are displayed.
+
+.TP 8
+.B xchess
+  This driver generates compatible xchess/xboard save files, thus allowing you
+to replay a game with xchess.
+
+.TP 8
+.B gnu
+  This driver generates "bare" output, with only the algebraic move.
+It is suitable for any low-level analyser, such as gnuan.
+
+.SH EXAMPLES
+	Try the following commands:
+.TP 8
+.B notation algebraic.txt
+this will read the Karpov-Kasparov game 13 (Lyon 1990) in algebraic form,
+display move in shortened algebraic and display board at end of game.
+.TP 8
+.B notation algebraic.txt -s
+this will do the same thing, as \fB-a\fR stands for algebraic
+output. 
+.TP 8
+.B notation algebraic.txt -a
+the game will now be output in full-length algebraic
+.TP 8
+.B notation shortened.txt
+there is no problem to read shortened algebraic.
+.TP 8
+.B notation shortened -s -o result
+the moves and board will be directed to file \fBresult\fR
+.TP 8
+.B notation shortened.txt -s -t french 
+output will use french notation
+.TP 8
+.B notation a_dutch_file -f dutch -t spanish
+game will be translated form dutch to spanish
+.TP 8
+.B notation shortened -c 2
+board after move 2 will be displayed, along with moves and end-of-game
+board
+.TP 8
+.B notation shortened.txt -e 2
+board after move 2 will be displayed, along with moves. The program
+will then stops
+.TP 8
+.B notation shortened.txt -c 2,5,20
+board after moves 2, 5 and 20 will be displayed, along with moves and
+end-of-game board
+.TP 8
+.B notation shortened.txt -c 2,5,20 -b
+board after moves 2, 5 and 20 will be displayed, with end-of-game
+board, but no moves.
+.TP 8
+.B notation shortened.txt -c 2,5,20 -d tex -o out.tex
+the output will be formatted to use with latex. You can directly latex
+the output file.
+.TP 8
+.B notation shortened.txt -c 2,5,20 -d gnu -o out.gnu
+you can now replay the game by using \fBxchess -r out.gnu\fB.
+.TP 8
+.B notation shortened.txt -e 5 -d postscript -o out.ps
+Now issue \fBcat lib/Cheq out.ps | lpr\fR to display on a Laser
+Printer the board at move 5. You can also issue \fBsh print-ps
+out-ps\fR.
+The postcript driver does not support the \fB-c\fR option.
+.TP 8
+.B notation boudy.txt -d tex -o boudy.tex
+This is the all-star, all-singing demonstration of the notation
+program. Runs latex on boudy.tex and print result.
+
+.SH FILES
+
+.TP 8
+.B algebraic.txt shortened.txt keywords.txt boudy.txt
+these are examples of input files
+
+.TP 8
+.B chesssymb.tex
+ this is the LaTeX file containing the definitions of the codified
+comment. You can include it in your own LaTeX files: you will be able
+to use the chess comments. The file is stand-alone. To iclude
+comment in LaTeX, just type \fB\\COM<three letter name>\fR. For
+instance \fB\\COMwsb\fR inserts the symbol for "whites stands lightly
+better".
+
+.TP 8
+.B chesssymb.txt
+explanation of codified comments
+
+.TP 8
+.B convsymb.txt
+used to prduce chesssymb.txt
+
+.TP 8
+.B ($LIBDIR/)HELPFILE
+this is the on-line helpfile
+
+.TP 8
+.B ($LIBDIR/) Cheq Header.ps Footer.ps
+these files are needed by the postscript driver
+
+.TP 8
+.B ($LIBDIR/)Header.tex
+these file is needed by the (la)tex driver
+
+.SH "SEE ALSO"
+xchess(1), chess(6), gnuchess(1), latex(1), nroff(1), lpr(1)
+
+.SH DIAGNOSTICS
+Errors messages are hoped to be self-explanative.
+
+.SH COMMENTS 
+The program is quite large, due to the extensive use of tables and
+variables to control its features. The advantage is you only need the
+modify these tables to customize it: for instance adding a new
+language or tuning the output format to your own needs. 
+
+.SH BUGS
+Too many. Report them to \fBHenry.Thomas@irisa.fr\fR.
+
+The postscript driver *might* fail if you try to display the board
+two times. Anyway, it is not designed to do this. Use \fB-e\fR option
+to specify the move at which you want to display board.
+
+Do not enter two levels of variation without any move between them. It
+will cause the crash of the program. For instance, \fB{ {\fR is wrong,
+but \fB { Qd1 {\fR is correct.
+
+
+.SH AUTHOR
+Henry Thomas IRISA-Rennes, FRANCE. E-mail to
+\fBHenry.Thomas@irisa.fr\fR or \fBhthomas@irisa.fr\fR.
+.SH "THANKS"
+
+Thanks to Jacques Schuurman for the piece names in Dutch, Philippe
+Louarn for explaining me some TeX tricks, Lael for czech, hungarian,
+polish, romanian and FIDE piece names, to Steven Young. Thank also to
+Brian Molinari, Markus Geltz and Jose Esquer Ruiz for pointing me to
+bugs Most of all, thank to Jean-Luc Scharbarg for introducing me to
+chess.

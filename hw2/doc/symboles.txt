@@ -1,0 +1,101 @@
+comment	shorthand 	english translation
+------------------------------------------------
+
+ +  +   	   check
+
+ ++  ++   	   double check
+
+ $wsb  +=  	   white stands lightly better
+
+ $bsb  =+  	   black stands lightly better
+
+ $wbe  +_  	   white has the upper hand
+
+ $bbe  _+  	   black has the upper hand
+
+ $wda  +-  	   white has a decisive advantage
+
+ $bda  -+  	   black has a decisive advantage
+
+ =    =  	   even
+
+ $ucr  ~   	   unclear
+
+ $wco  =~   	   with compensation for the material
+
+ $dad  (^)   	   development advantage
+
+ $spa  ()   	   greater space advantage
+
+ $wta  ->   	   with attack
+
+ $win  |^   	   with initiative
+
+ $wcp  <->   	   with counter-play
+
+ $zug  (.)   	   zugzwang
+
+ #  #   	   mate
+
+ !  !   	   very good move
+
+ ?  ?   	   very bad move
+
+ !!  !!   	   excellent move
+
+ ??  ??   	   a mistake
+
+ !?  !?   	   a move deserving attention
+
+ ?!  ?!   	   a dubious move
+
+ $wti  /\   	   with the idea...
+
+ $olm  []   	   only move
+
+ $bei  ^_   	   better is
+
+ $fil  <=>   	   file
+
+ $dia  /^   	   diagonal
+
+ $cnt  [+]   	   center
+
+ $kgs  >>   	   king's side
+
+ $qns  <<   	   queen's side
+
+ $wkp  ><   	   weak point
+
+ $end  _|_   	   ending
+
+ $pob  ==   	   pair of bishops
+
+ $opc  =#   	   bishops of opposite colors
+
+ $scb  ##   	   same coloured bishops
+
+ $unp  oo   	   united pawns
+
+ $sep  o..o   	   separated pawns
+
+ $dop  o/o   	   doubled pawns
+
+ $tim  (+)   	   time
+
+ $nov  N   	   novelty
+
+ $com  RR   	   editorial comment
+
+ $var  R   	   various moves
+
+ $wto  _|   	   without
+
+ etc  etc   	   etc
+
+ ||  ||   	   etc
+
+ $see     	   see
+
+ ep  ep   	   en passant
+

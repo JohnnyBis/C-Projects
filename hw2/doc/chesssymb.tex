@@ -1,0 +1,88 @@
+% next definition we take from LaTeX
+\def\mbox#1{\leavevmode\hbox{#1}}
+
+%
+% Next part will be added to chess.sty version 1.2
+%
+
+% And now we define most symbols that are used in `\v{S}ahovski Informator'
+% (Chess Informant). For a complete list see Informant#51 (1991) pp 10-12.
+% If you add symbols realize that the macros should be usable by plain TeX
+% and LaTeX and that the (La)TeX names should be suggestive and clear!
+% Thanks go to John Saba (saba@ccit.arizona.edu) and Henry Thomas 
+% (hthomas@irisa.fr) for their help in defining next symbols.
+\font\symbolten=cmsy10 \font\smrm=cmr6 \font\symbolsix=cmsy6
+\def\Wbetter{\mbox{\baselineskip0pt$\vcenter{\vbox{\hbox{+}\hbox{=}}}$}}
+\def\Bbetter{\mbox{\baselineskip0pt
+   $\vcenter{\vbox{\hbox{=}\kern-.3ex\hbox{+}}}$}}
+\def\Wupperhand{\mbox{$\pm$}}
+\def\Bupperhand{\mbox{$\mp$}}
+\def\Wdecisive{\mbox{$+\hbox{}-$}}
+\def\Bdecisive{\mbox{$-\hbox{}+$}}
+\def\equal{=}
+\def\unclear{\mbox{$\infty$}}
+\def\compensation{\mbox{\baselineskip0pt$\vcenter{\vbox{%
+   \hbox{\kern.056em\vbox{\hrule width0.89em\kern0.35ex\hrule width0.89em}}
+   \kern.2ex\hbox{$\infty$}}}$}}
+% next symbol should be build using METAFONT
+\def\devadvantage{{\symbolten\char'015}\kern-4.8pt
+   \vrule width 2.4pt height6pt depth-5.6pt
+   \vrule width .4pt height8pt depth-5.6pt\kern2.4pt}
+\def\moreroom{{\symbolten\char'015}}
+\def\withattack{$\rightarrow$}
+\def\withinit{$\uparrow$}
+\def\counterplay{\hbox{\baselineskip0pt%
+   $\vcenter{\vbox{\hbox{$\leftarrow$}\hbox{$\rightarrow$}}}$}}
+\def\zugzwang{$\odot$}
+\def\mate{\kern.4pt\mbox{%
+   \vrule width2ex height1.18ex depth-1.1ex\kern-2ex
+   \vrule width2ex height.52ex depth-.44ex\kern-1.381ex
+   \vrule width.08ex height1.8ex depth.2ex\kern0.615ex
+   \vrule width.08ex height1.8ex depth.2ex\kern0.406ex}\kern.4pt}
+\def\withidea{$\triangle$}
+\def\onlymove{$\Box$}
+\def\betteris{\mbox{\baselineskip0pt
+   $\vcenter{\vbox{\hbox{$\frown$}\kern-0.35ex\hrule width0.95em}}$}}
+\def\file{$\Leftrightarrow$}
+% next symbol should be build using METAFONT
+\def\diagonal{$\nearrow$}
+\def\Center{$\Box$\kern-.6em\raise.54ex\hbox{\smrm\char'053}}
+\def\kside{$\gg$}
+\def\qside{$\ll$}
+\def\weakpt{$\times$}
+\def\ending{$\perp$}
+\def\bishoppair{\setbox0=\hbox{%
+   \vrule width1.4ex height1ex depth-.92ex\kern-1.4ex
+   \vrule width1.4ex height.08ex depth0pt\kern-1.4ex
+   \vrule width.08ex height1ex depth0ex\kern1.24ex
+   \vrule width.08ex height1ex depth0ex}%
+   \kern.4pt\mbox{\copy0\kern-.6ex\raise0.56ex\box0}\kern.4pt}
+\def\opposbishops{\kern.4pt\mbox{%
+   \vrule width1.4ex height1ex depth-.92ex\kern-1.4ex
+   \vrule width1.4ex height.08ex depth0pt\kern-1.4ex
+   \vrule width.08ex height1ex depth0ex\kern1.24ex
+   \vrule width.08ex height1ex depth0ex\kern-.6ex
+   \vrule width1.4ex height1.56ex depth-0.56ex}\kern.4pt }
+\def\samebishops{\kern.4pt\mbox{%
+   \vrule width1.4ex height1ex depth0ex\kern-.6ex
+   \vrule width1.4ex height1.56ex depth-0.56ex}\kern.4pt}
+\def\unitedpawns{$\circ\kern-.05em\circ$}
+\def\seppawns{$\circ\kern-.3em\cdot\kern-.35em\cdot\kern-.1em\circ$}
+\def\doublepawns{\mbox{\baselineskip0pt
+   $\vcenter{\vbox{\hbox{$\circ$}\vskip.8pt\hbox{$\circ$}}}$}}
+\def\passedpawns{\mbox{\baselineskip0pt
+   $\vcenter{\vbox{\hbox{\kern0.09em\symbolsix\char'042}\hbox{$\circ$}}}$}}
+\def\morepawns{$>$}
+\def\time{$\oplus$}
+\def\novelty{{\sc N}}
+\def\comment{{\sc RR}}
+\def\various{{\sc R}}
+\def\with{\kern.4pt\mbox{%
+   \vrule width 1ex height.08ex depth0ex\kern-0.08ex
+   \vrule width0.08ex height1.5ex depth0ex}\kern.4pt}
+\def\without{\kern.4pt\mbox{%
+   \vrule width 0.08ex height1.5ex depth0ex\kern-0.08ex
+   \vrule width 1ex height.08ex depth0ex}\kern.4pt}
+\def\etc{$\parallel$}
+\def\see{\kern.4pt\mbox{\vrule width 1em height.54ex depth-.46ex}\kern.4pt}
+

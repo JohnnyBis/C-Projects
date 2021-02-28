@@ -1,0 +1,59 @@
+{
+    "folders":
+    [
+        {
+            "path":".",
+            "name":"Project Base"
+        },
+        {
+            "path": "src",
+            "name": "C Source",
+            "follow_symlinks": false,
+            "file_include_patterns":["*.c", "*.l"],
+        },
+        {
+            "path": "include",
+            "name": "C Headers",
+            "follow_symlinks": false,
+            "file_include_patterns":["*.h", "*.def"],
+        },
+        {
+            "path": "lib",
+            "name": "Auxiliary Files",
+        }
+        {
+            "path": "doc",
+            "name": "Documentation",
+        }
+        {
+            "path": "rsrc",
+            "name": "Test Inputs",
+        }
+        {
+            "path": "tests",
+            "name": "Tests",
+            "file_include_patterns":["*.h", "*.c"],
+        }
+    ],
+    "settings":
+    {
+    },
+    "build_systems":
+    [
+        {
+            "name": "Release (full build)",
+            "working_dir":"$project_path",
+            "shell_cmd": "make clean all",
+        },
+        {
+            "name": "Debug (full build)",
+            "working_dir":"$project_path",
+            "shell_cmd": "make clean debug",
+        },
+        {
+            "name": "Test",
+            "working_dir":"$project_path",
+            "shell_cmd": "bin/${project_base_name}_tests}",
+        }
+    ]
+}

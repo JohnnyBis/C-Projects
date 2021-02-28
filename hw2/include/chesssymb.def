@@ -1,0 +1,158 @@
+/*
+  chess symbols : arguments (all are strings)
+  0: ident
+  1: ascii name
+  2: ascii abbrev
+  3: TeX name
+  4: Postscript name (Mr. Walker font)
+  5: english text
+  6: french text
+  */
+
+CHESSSYMB ( COM_CHK, "+", "+" ,  "+", "",
+	   "check",
+	   "echec" )
+CHESSSYMB ( COM_DCK, "++", "++" ,  "++", "",
+	   "double check",
+	   "echec double" )
+CHESSSYMB ( COM_WSB, "$wsb", "+=", "\\wbetter", "",
+	   "white stands lightly better",
+	   "les blancs ont un jeu un peu meilleur" )
+CHESSSYMB ( COM_BSB, "$bsb", "=+", "\\bbetter", "",
+	   "black stands lightly better",
+	   "les noirs ont un jeu un peu meilleur" )
+CHESSSYMB ( COM_WBE, "$wbe", "+_", "\\wupperhand", "",
+	   "white has the upper hand",
+	   "les blancs ont le meilleur jeu" )
+CHESSSYMB ( COM_BBE, "$bbe", "_+", "\\bupperhand", "",
+	   "black has the upper hand",
+	   "les noirs ont le meilleur jeu" )
+CHESSSYMB ( COM_WDA, "$wda", "+-", "\\wdecisive", "",
+	   "white has a decisive advantage",
+	   "les blancs ont un avantage de'cisif" )
+CHESSSYMB ( COM_BDA, "$bda", "-+", "\\bdecisive", "",
+	   "black has a decisive advantage",
+	   "les noirs ont un avantage de'cisif" )
+CHESSSYMB ( COM_EQA, "="  , "=",  "\\equal", "",
+	   "even",
+	   "e'gal" )
+CHESSSYMB ( COM_UCR, "$ucr", "~" ,  "\\unclear", "",
+	   "unclear",
+	   "incertain" )
+CHESSSYMB ( COM_WCO, "$wco", "=~" ,  "\\compensation", "",
+	   "with compensation for the material",
+	   "avec compensation pour le mate'riel" )
+CHESSSYMB ( COM_DAD, "$dad", "(^)" ,  "\\devadvantage", "",
+	   "development advantage",
+	   "avance de de'veloppement" )
+CHESSSYMB ( COM_SPA, "$spa", "()" ,  "\\moreroom", "",
+	   "greater space advantage",
+	   "grand avantage d'espace" )
+CHESSSYMB ( COM_WTA, "$wta", "->" ,  "\\withattack", "",
+	   "with attack",
+	   "avec attaque" )
+CHESSSYMB ( COM_WIN, "$win", "|^" ,  "\\withinit", "",
+	   "with initiative",
+	   "avec initiative" )
+CHESSSYMB ( COM_WCP, "$wcp", "<->" ,  "\\counterplay", "",
+	   "with counter-play",
+	   "avec contre-attaque" )
+CHESSSYMB ( COM_ZUG, "$zug", "(.)" ,  "\\zugzwang", "",
+	   "zugzwang",
+	   "zug zwang" )
+CHESSSYMB ( COM_MAT, "#", "#" ,  "\\mate", "",
+	   "mate",
+	   "mat" )
+CHESSSYMB ( COM_VGM, "!", "!" ,  "!", "",
+	   "very good move",
+	   "un tre`s bon coup" )
+CHESSSYMB ( COM_VBM, "?", "?" ,  "?", "",
+	   "very bad move",
+	   "un tre`s mauvais coup" )
+CHESSSYMB ( COM_EXM, "!!", "!!" ,  "!!", "",
+	   "excellent move",
+	   "un excellent coup" )
+CHESSSYMB ( COM_MIS, "??", "??" ,  "??", "",
+	   "a mistake",
+	   "un coup faible" )
+CHESSSYMB ( COM_MDA, "!?", "!?" ,  "!?", "",
+	   "a move deserving attention",
+	   "un coup qui me'rite l'attention" )
+CHESSSYMB ( COM_DUM, "?!", "?!" ,  "?!", "",
+	   "a dubious move",
+	   "un coup d'une valeur douteuse" )
+CHESSSYMB ( COM_WTI, "$wti", "/\\" ,  "\\withidea", "",
+	   "with the idea...",
+	   "avec l'ide'e..." )
+CHESSSYMB ( COM_OLM, "$olm", "[]" ,  "\\onlymove", "",
+	   "only move",
+	   "seul coup possible" )
+CHESSSYMB ( COM_BEI, "$bei", "^_" ,  "\\betteris", "",
+	   "better is",
+	   "est meilleur" )
+CHESSSYMB ( COM_FIL, "$fil", "<=>" ,  "\\file", "",
+	   "file",
+	   "colonne" )
+CHESSSYMB ( COM_DIA, "$dia", "/^" ,  "\\diagonal", "",
+	   "diagonal",
+	   "diagonale" )
+CHESSSYMB ( COM_CNT, "$cnt", "[+]" ,  "\\centre", "",
+	   "center",
+	   "centre" )
+CHESSSYMB ( COM_KGS, "$kgs", ">>" ,  "\\kside", "",
+	   "king's side",
+	   "aile roi" )
+CHESSSYMB ( COM_QNS, "$qns", "<<" ,  "\\qside", "",
+	   "queen's side",
+	   "aile reine" )
+CHESSSYMB ( COM_WKP, "$wkp", "><" ,  "\\weakpt", "",
+	   "weak point",
+	   "point faigle" )
+CHESSSYMB ( COM_END, "$end", "_|_" ,  "\\ending", "",
+	   "ending",
+	   "finale" )
+CHESSSYMB ( COM_POB, "$pob", "==" ,  "\\bishoppair", "",
+	   "pair of bishops",
+	   "paire de fous" )
+CHESSSYMB ( COM_OPC, "$opc", "=#" ,  "\\opposbishops", "",
+	   "bishops of opposite colors",
+	   "fous de couleurs oppose'es" )
+CHESSSYMB ( COM_SCB, "$scb", "##" ,  "\\samebishops", "",
+	   "same coloured bishops",
+	   "fous de me^me couleur" )
+CHESSSYMB ( COM_UNP, "$unp", "oo" ,  "\\unitedpawns", "",
+	   "united pawns",
+	   "pions unis" )
+CHESSSYMB ( COM_SEP, "$sep", "o..o" ,  "\\seppawns", "",
+	   "separated pawns",
+	   "pions se'pare's" )
+CHESSSYMB ( COM_DOP, "$dop", "o/o" ,  "\\doublepawns", "",
+	   "doubled pawns",
+	   "pions double's" )
+CHESSSYMB ( COM_TIM, "$tim", "(+)" ,  "\\timelimit", "",
+	   "time",
+	   "temps" )
+CHESSSYMB ( COM_NOV, "$nov", "N" ,  "\\novelty", "",
+	   "novelty",
+	   "nouveaute'" )
+CHESSSYMB ( COM_COM, "$com", "RR" ,  "\\comment", "",
+	   "editorial comment",
+	   "commentaire e'ditorial" )
+CHESSSYMB ( COM_VAR, "$var", "R" ,  "\\various", "",
+	   "various moves",
+	   "coups divers" )
+CHESSSYMB ( COM_WTO, "$wto", "_|" ,  "\\without", "",
+	   "without",
+	   "sans" )
+CHESSSYMB ( COM_ETC, "etc", "etc" ,  "{etc}", "",
+	   "etc",
+	   "etc" )
+CHESSSYMB ( COM_ETD, "||", "||" ,  "\\etc", "",
+	   "etc",
+	   "etc" )
+CHESSSYMB ( COM_SEE, "$see", "" ,  "\\see", "",
+	   "see",
+	   "voir" )
+CHESSSYMB ( COM_ENP, "ep", "ep" ,  "{ep}", "",
+	   "en passant",
+	   "en passant" )

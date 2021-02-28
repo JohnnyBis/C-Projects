@@ -1,0 +1,143 @@
+# Makefile for notation program
+# (C) Henry Thomas 1990
+
+FILES      = notation.c drivers.c lexer.c lexer.l
+HEADERS	   = notation.h drivers.h lexer.h chesstype.h chesssymb.def
+LIBDIR     = $(HOME)/lib
+LIBTEX	   = $(HOME)/lib/tex
+MANDIR	   = $(HOME)/cygnus/man
+MANSEC     = n
+BINDIR	   = $(HOME)/bin/$(HOSTTYPE)
+
+OBJECTS    = notation.o drivers.o lexer.o
+
+OTHERFILES = Makefile notation.hlp \
+	keywords.ntn algebric.ntn shortened.ntn boudy.ntn\
+	notation.doc notation.n \
+	README TODO COPYING CHANGES \
+	Header.ps Footer.ps \
+	convsymb.txt convsymb.tex \
+	symboles.txt symboles.tex chesssymb.tex symb.tex
+
+
+SAVEFILES  = $(FILES) $(HEADERS) $(OTHERFILES)
+
+VERSION    = `sccs get -g notation.c`
+KITNAME	   = "Notation"
+# version ids used for producing patches
+#   -- caveat: as I started all over from 3.2, 1.0 = 3.2
+OLDVER	   = 1.0
+NEWVER	   = $(VERSION)
+
+SYMBKIT	   = ChessSymb
+SYMBFILES  = symboles.tex symb.tex chesssymb.tex
+
+############################################################
+# you might want to define the lib path : 
+#	do not forget the trailing /
+# ( the library is the place where the HELPFILE, Heading, fonts etc are)
+# also you can have default language for input/ouput
+# define DEFAULT_INPUT_LANGUAGE and DEFAULT_OUPUT_LANGUAGE
+# value can be:
+#	FRENCH, ENGLISH, GERMAN, ITALIAN, SPANISH, DUTCH
+# ANSI C/ TURBO C (MSDOS)
+# to compile with TURBO C or ANSI C, define TURBOC
+CFLAGS     = -DLIB_DIR=\"$(HOME)/lib/\" \
+	-DDEFAULT_INPUT_LANGUAGE=FRENCH \
+	-DDEFAULT_OUTPUT_LANGUAGE=FRENCH 
+LDFLAGS    = 
+
+
+LEX= flex
+
+#CC= gcc -ansi -pedantic
+
+############################################################
+
+.KEEPSTATE:
+
+all: notation notation.doc symboles.txt
+
+lexer.c: lexer.l chesstype.h
+	$(LEX) -t lexer.l > lexer.c
+
+notation: $(OBJECTS)
+	$(CC) $(CFLAGS) -o notation  $(OBJECTS) 
+
+symboles.txt:  chesssymb.def convsymb.txt
+	/lib/cpp -P convsymb.txt| sed -e "s/\\\\//" |\
+	sed -e 's/\"//g' | cat -s > symboles.txt
+
+symb.tex:  chesssymb.def convsymb.tex
+	/lib/cpp -P convsymb.tex | sed -e 's/\\\\/\\/g' |\
+	sed -e 's/\"//g' | cat -s > symb.tex
+
+symboles.dvi: symboles.tex symb.tex
+	latex symboles.tex
+
+
+kit     : $(SAVEFILES)
+	makekit -n$(KITNAME) $(LIBDIR) $(SAVEFILES) MANIFEST > MANIFEST
+
+shar     : $(SAVEFILES)
+	shar -o$(KITNAME).shar $(LIBDIR) $(SAVEFILES) 
+	compress -f $(KITNAME).shar
+
+tar     : $(SAVEFILES)
+	tar -cvf - $(SAVEFILES) > $(KITNAME)$(VERSION).tar
+	compress -f $(KITNAME)$(VERSION).tar
+
+zoo	: $(SAVEFILES)
+#	chmod +w $(KITNAME).zoo
+	zoo -freshen $(KITNAME).zoo $(SAVEFILES)
+	rm -f $(KITNAME).bak
+#	chmod -w $(KITNAME).zoo
+
+patch	: $(SAVEFILES)
+	chmod +w Notation.new/*
+	rm Notation.new/*
+	cp $(SAVEFILES) Notation.new
+	diff -c Notation.old Notation.new > patch$(NEWVER) 
+#	( cat FTP ; shar patch$(NEWVER) ) > patch$(NEWVER).shar
+
+sauve   :
+	make zoo
+#	chmod +w $(KITNAME).zoo
+	cp $(KITNAME).zoo $(HOME)/local/sauve
+#	chmod -w $(KITNAME).zoo
+
+symboles: $(SYMBFILES)
+	shar -o$(SYMBKIT).shar $(SYMBFILES) 
+	compress -f $(SYMBKIT).shar
+	
+
+files: notation.hlp chesssymb.def
+	make notation
+	strip notation
+#	chmod +x print-ps
+	make notation.doc 
+	make symboles.txt symb.tex
+
+install:
+	make files
+	cp notation $(BINDIR)
+	cp chesssymb.tex notation.tex $(LIBTEX)
+	cp notation.n $(MANDIR)/man$(MANSEC)/notation.$(MANSEC)
+	cp notation.doc $(MANDIR)/cat$(MANSEC)/notation.$(MANSEC)
+	cp notation.hlp notation.doc Header.ps Footer.ps \
+		symboles.txt symboles.tex $(LIBDIR)
+
+clean:
+	rm -f notation $(OBJECTS) lexer.c
+	rm -f $(KITNAME)*.shar[.Z] $(KITNAME)*.tar[.Z] \
+		$(KITNAME)0? MANIFEST $(SYMBKIT).shar
+
+notation.doc: notation.n
+	nroff -man notation.n > notation.doc
+
+
+# DO NOT DELETE THIS LINE -- make depend depends on it.
+
+drivers.o: chesstype.h notation.h drivers.h chesssymb.def
+lexer.o: chesstype.h notation.h lexer.h chesssymb.def
+notation.o: chesstype.h drivers.h notation.h lexer.h chesssymb.def
