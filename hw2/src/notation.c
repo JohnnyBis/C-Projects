@@ -386,7 +386,7 @@ static int find_keyword(tab, nbentry,defaut,key,warning)
   int i ;
 
   for(i=0; (i< nbentry) ;i++)
-    if (strcmp(tab[i],key))
+    if (strcmp(tab[i],key) == 0)
       return(i);
 
   /* we failed to find the keyword */
@@ -483,7 +483,7 @@ depl * new_move()
   int i;
   static int counter = 0;
 
-  tmp = (depl *) malloc (sizeof(depl *));
+  tmp = (depl *) malloc (sizeof(depl));
   ALLOCP(tmp);
   for (i=0; i < ((sizeof (depl))/ sizeof (int)) ; i++)
     ((int *) tmp)[i] = 0;
@@ -1827,8 +1827,9 @@ int notation_main(argc,argv)
   init_board(tos);
 
   /* allocation of move descriptor */
-  m->type = VOID ;
-  /*init_move(m);*/
+  // m->type = VOID ;
+  m = new_move();
+  init_move(m);
 
   /* allocation of the play descriptor */
   theplay = (play *) malloc (sizeof(play)) ;
