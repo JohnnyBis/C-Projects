@@ -12,6 +12,7 @@
 #include "chesstype.h"
 #include "notation.h"
 #include "drivers.h"
+#include <string.h>
 
 /* postscript characters translation table
    one entry per piece
@@ -46,13 +47,13 @@ static char * texboard_table[][4] = {
 };
 
 /* TeX table for using the chess figures in move description */
-/* P.T. macros render this table useless as english symbols 
+/* P.T. macros render this table useless as english symbols
    are active char in analysis mode
    */
 static char * latex_table[] = {
   "", /* null */
 /*  "{\\Fig K}", "{\\Fig Q}", "{\\Fig R}", "{\\Fig B}", "{\\Fig N}",  "" */
-  "K", "Q", "R", "B", "N",  "" 
+  "K", "Q", "R", "B", "N",  ""
     /* last entry = pawn; not represented, otherwise "{\\Fig P}" */
 };
 
@@ -62,8 +63,8 @@ static char FigCapt[] = "*"; /* "*" is an active char with P.T. macros */
 static char FigDots[] = ":"; /* ":" is an active char for "..." */
 static char FigDot[] = "\\FigDot";
 
-#define G_ROQUE  "O-O-O" 
-#define P_ROQUE  "O-O" 
+#define G_ROQUE  "O-O-O"
+#define P_ROQUE  "O-O"
 
 /* variation symbols */
 static char varsymb[][2] = { { '[', ']' }, { '(', ')' } };
@@ -98,7 +99,7 @@ static int roque_to_move(m)
 
   m->piece = KING;
   m->fromcol   = 5;
-  if (m->type == GRANDROQUE)  
+  if (m->type == GRANDROQUE)
     m->tocol = 3;
   else
     m->tocol = 7;
@@ -144,7 +145,7 @@ static void flush_buffer(d)
      format * d;
 #endif
 {
-  
+
   /* if we have been interupted (by a comment, a board display etc...
      if the move is black
      we display <movenumber> ... <blackmove>
@@ -153,23 +154,23 @@ static void flush_buffer(d)
     switch (d->type) {
     case D_TEX:
       (void) fprintf(d->outfile,
-		     "%s %s %s\n", 
+		     "%s %s %s\n",
 		     d->move_buffer,FigDots,d->black_buffer);
       break;
     case D_GNU:
     case D_XCHESS:
       /* no special case for GNU */
       (void) fprintf(d->outfile,"\t%s\n",d->black_buffer);
-      break;    
+      break;
     default:
-      (void) fprintf(d->outfile,"\n%3s.%9s%9s", 
+      (void) fprintf(d->outfile,"\n%3s.%9s%9s",
 		     d->move_buffer,"...",d->black_buffer);
       break;
     }
     d->interrupt = FALSE ;
   } else {
   /* else (no interrupt)
-     we display either white or black move 
+     we display either white or black move
      */
     switch (d->type) {
     case D_TEX:
@@ -186,7 +187,7 @@ static void flush_buffer(d)
 	(void) fprintf(d->outfile,"\t%s",d-> white_buffer);
       else
 	(void) fprintf(d->outfile,"\t%s\n",d->black_buffer);
-      break;    
+      break;
     default:
       if (d->iswhiteturn)
 	(void) fprintf(d->outfile,"\n%3s.%9s", d->move_buffer,d->white_buffer);
@@ -212,7 +213,6 @@ static void output_move_generic(dr,d)
      depl *d;
 #endif
 {
-  char ligne[128] ;
   char themove[128] ;
   char thepiece[16]  ;
   char debcol[16];
@@ -225,28 +225,28 @@ static void output_move_generic(dr,d)
   int ambigue = FALSE ;
   int ambigueline, ambiguecols;
 
-  ligne[0] = themove[0] = thepiece[0] = '\0';
+  themove[0] = thepiece[0] = '\0';
   frommove[0] = tomove[0] = lie[0] = prom[0] = '\0' ;
 
-  if (dr->type == D_TEX) 
+  if (dr->type == D_TEX)
     (void) sprintf(captsymb,"%s", FigCapt);
   else
     (void) sprintf(captsymb,"%s", "x" );
 
   if (dr->type == D_TEX) {
     (void) sprintf (dr->move_buffer,"\\mn{%d}",d->move);
-  } else 
+  } else
     (void) sprintf (dr->move_buffer,"%d",d->move);
 
   if ((d->type == PETITROQUE) && !dr->roque_alg)
     (void) sprintf (themove,"%s",P_ROQUE);
   if ((d->type == GRANDROQUE) && !dr->roque_alg)
     (void) sprintf (themove,"%s",G_ROQUE);
-  if (dr->roque_alg && 
+  if (dr->roque_alg &&
       ((d->type == GRANDROQUE) || (d->type == PETITROQUE)))
     (void) roque_to_move(d);
 
-  if (dr-> roque_alg || 
+  if (dr-> roque_alg ||
       ((d->type != GRANDROQUE) && (d->type != PETITROQUE))) {
 
     /* we check here for ambiguous move */
@@ -254,12 +254,12 @@ static void output_move_generic(dr,d)
       ambigue = ambiguity (d, &ambigueline, &ambiguecols );
       /* if ( (ambigue ) && (d->piece != PAWN ))
        * (void) fprintf (stderr,"output ambiguity at move %d %d",
-       * d->move,d->whiteturn); 
+       * d->move,d->whiteturn);
        */
     }
 
     themove[0] = '\0' ;
-    if ((dr->output_move_format == SHORTENED) 
+    if ((dr->output_move_format == SHORTENED)
 	&& (d->type == PRISE) && (d->piece == PAWN))
       (void) sprintf (debcol, "%c",coltoletter(d->fromcol));
 
@@ -280,10 +280,10 @@ static void output_move_generic(dr,d)
 	(void)sprintf(frommove,"%c", coltoletter(d->fromcol));
       /* is the ambiguity on lines ? -> print lig */
       if (ambiguecols && !ambigueline)
-	(void)sprintf(frommove,"%c", ligtoletter(d->fromlig));     
+	(void)sprintf(frommove,"%c", ligtoletter(d->fromlig));
       /* unable to find where is ambiguity ? print all */
       /* ( I doubt this case ever occurs ... ) */
-      if ( ambigueline && ambiguecols) 
+      if ( ambigueline && ambiguecols)
 	(void)sprintf(frommove,"%c%c",
 		      coltoletter(d->fromcol),ligtoletter(d->fromlig));
       debcol[0] = '\0' ;
@@ -298,16 +298,16 @@ static void output_move_generic(dr,d)
       } else /* xchess - gnu output */
 	(void) sprintf(prom,"%c",dr->out_table[d->promotion]);
     }
-          
+
     if (dr->print_liaison) {
-      if ((d->type == PRISE) || (d->type == PROM_ET_PRISE) 
+      if ((d->type == PRISE) || (d->type == PROM_ET_PRISE)
 	  || (d->type == EN_PASSANT) )
 	(void) sprintf(lie,"%s",captsymb);
       else
 	if ((dr->output_move_format == ALGEBRAIC))
 	  (void) sprintf(lie,"%c",'-');
     }
-    
+
     (void) sprintf(tomove,"%c%c",coltoletter(d->tocol),ligtoletter(d->tolig));
 
     (void) sprintf (themove,"%s%s%s%s%s%s",
@@ -319,10 +319,10 @@ static void output_move_generic(dr,d)
   else
     (void) sprintf (dr->black_buffer, "%s",themove);
 
-  dr->iswhiteturn = d->whiteturn; 
+  dr->iswhiteturn = d->whiteturn;
 
   /*fprintf(dr->outfile, "=%d=%d= ",d->move,d->whiteturn);*/
-  flush_buffer(dr); 
+  flush_buffer(dr);
 }
 
 /* variation handler */
@@ -340,7 +340,7 @@ static void output_variation_generic (dr,inout)
     symbol = varsymb[1][inout];
   else
     symbol = varsymb[0][inout];
-    
+
   switch (dr->type) {
   case D_TEX:
     /* we must boldface the brackets for level 1 */
@@ -351,7 +351,7 @@ static void output_variation_generic (dr,inout)
       else
         (void) fprintf(dr->outfile, "\\end{Variation} %%\n");
     } else
-      (void) fprintf(dr->outfile, " %c ",symbol); 
+      (void) fprintf(dr->outfile, " %c ",symbol);
     break;
   default:
     (void) fprintf(dr->outfile, "  %c",symbol);
@@ -371,11 +371,13 @@ static void output_text_generic(dr, type, string, code)
 {
   switch (type) {
   case T_COMMENT:
-    if (com_short[code] != '\0' )
+    if (*com_short[code] != '\0' ) {
       (void) fprintf(dr->outfile," %s ",com_short[code]);
-    else
+    }
+    else{
       (void) fprintf(dr->outfile," %s ",com_long[code]);
       break;
+    }
   case T_TEXT:
     (void) fprintf(dr->outfile," %s ",string);
     break;
@@ -395,13 +397,13 @@ static void output_text_generic(dr, type, string, code)
 
 /* ---------------- ascii driver ----------  */
 #ifdef __STDC__
-static void output_init_ascii(format *dr) 
+static void output_init_ascii(format *dr)
 #else
-static void output_init_ascii(dr) 
+static void output_init_ascii(dr)
 format *dr;
 #endif
 {}
-    
+
 #ifdef __STDC__
 static void output_board_ascii(format *dr,game *g)
 #else
@@ -421,9 +423,9 @@ static void output_board_ascii(dr,g)
     (void) fputc('|',dr->outfile);
     for (j=1 ; j<9 ; j++) {
       if (g->board[i][j] != VOID) {
-	if (g->color[i][j] == WHITE) 
+	if (g->color[i][j] == WHITE)
 	 (void) fputc(dr->out_table[g->board[i][j]], dr->outfile);
-	else 
+	else
 	  (void) fputc(tolower(dr->out_table[g->board[i][j]]),dr->outfile);
       } else
 	(void) fputc ( ((i+j)% 2)?' ':'/', dr->outfile);
@@ -509,9 +511,9 @@ static void output_board_roff(dr, g)
     (void) fprintf(dr->outfile,".ce\n  ");
     for (j=1 ; j<9 ; j++) {
       if (g->board[i][j] != VOID) {
-	if (g->color[i][j] == WHITE) 
+	if (g->color[i][j] == WHITE)
 	 (void) fputc(dr->out_table[g->board[i][j]], dr->outfile);
-	else 
+	else
 	  (void) fputc(tolower(dr->out_table[g->board[i][j]]),dr->outfile);
       } else
 	/*(void) fputc ( ((i+j)% 2)?' ':'/', dr->outfile);*/
@@ -558,11 +560,13 @@ static void output_text_tex(dr, type, string, code)
 
   switch (type) {
   case T_COMMENT:
-    if (com_tex[code] != '\0' )
+    if (*com_tex[code] != '\0' ) {
       (void) fprintf(dr->outfile,"%s\\ ",com_tex[code]);
-    else
+    }
+    else {
       (void) fprintf(dr->outfile,"%s\\ ",com_short[code]);
       break;
+    }
   case T_TEXT:
     (void) fprintf(dr->outfile," %s ",string);
     break;
@@ -612,7 +616,7 @@ static void output_end_tex(format *dr)
 static void output_end_tex(dr)
      format *dr;
 #endif
-{ 
+{
   (void) fprintf(dr->outfile, "\n\\end{Mainline}\n");
   (void) fprintf(dr->outfile, " \n\n\n\\end{document}\n");
 }
@@ -720,7 +724,7 @@ format * new_driver()
 #endif
 {
   format * tmp;
-  int i; 
+  int i;
 
   tmp = (format *) malloc (sizeof(format));
   ALLOCP(tmp);
