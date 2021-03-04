@@ -225,7 +225,7 @@ static void output_move_generic(dr,d)
   int ambigue = FALSE ;
   int ambigueline, ambiguecols;
 
-  themove[0] = thepiece[0] = '\0';
+  debcol[0]=captsymb[0]=themove[0] = thepiece[0] = '\0';
   frommove[0] = tomove[0] = lie[0] = prom[0] = '\0' ;
 
   if (dr->type == D_TEX)

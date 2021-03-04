@@ -501,8 +501,8 @@ void init_move(m)
      depl *m;
 #endif
 {
-  m->move= 1 ;
-  m->whiteturn = TRUE ;
+  m->move = 0 ;
+  m->whiteturn = FALSE ;
 }
 
 #ifdef __STDC__
@@ -1796,7 +1796,6 @@ int notation_main(argc,argv)
 #endif
 {
   (void) fprintf(stderr,"%s\n",version_string);
-
   /* allocation of driver descriptor */
   dr = new_driver();
 
@@ -1838,10 +1837,10 @@ int notation_main(argc,argv)
   movecount = 1;
 
   /* main analysis routine */
-  yyin = infile ;
+  yyin = infile;
   yyout = stderr ;
 
-  /*init_parse(m); */
+  /*init_parse(m);*/
   yylex();
 
   if ((count == 0) && !error_flag)
