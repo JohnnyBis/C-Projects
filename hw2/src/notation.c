@@ -40,6 +40,7 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 #include "notation.h"
 #include "drivers.h"
 #include "lexer.h"
+#include <getopt.h>
 
 extern void close_files();
 
@@ -385,9 +386,11 @@ static int find_keyword(tab, nbentry,defaut,key,warning)
 {
   int i ;
 
-  for(i=0; (i< nbentry) ;i++)
-    if (strcmp(tab[i],key) == 0)
+  for(i=0; (i< nbentry) ;i++) {
+    if (strcmp(tab[i],key) == 0) {
       return(i);
+    }
+  }
 
   /* we failed to find the keyword */
   if (warning)
@@ -1627,11 +1630,26 @@ int parse_options(argc,argv)
   dr->outfile = stdout;
   nb_move_to_dsp = 0;
 
+  //----------------------------GETOPT IMPLEMENTATION----------------------------------
+  static struct option long_options[] = {
+    {"long-algebraic",     no_argument, NULL, 'a'},
+    {"short-algebraic",  no_argument,       NULL, 's'},
+    {"outpt-language",  required_argument, NULL, 'f'},
+    {"input-language", required_argument,       NULL, 't'},
+    {"output-file",  required_argument, NULL, 'o'},
+    {"show-after",    required_argument, NULL, 'c'},
+    {"end-after",    required_argument, NULL, 'e'},
+    {"no-headers", no_argument, NULL, 'i'},
+    {"help", no_argument, NULL, 'h'},
+    {"version", no_argument, NULL, 'v'}
+  };
+  int index = 0;
   while (narg < argc ) {
     (void) strcpy (cp,argv[narg]);
     switch (cp[0]) {
     case '-' :
-      switch (cp[1]) {
+      c = getopt_long(argc, argv, "asf:t:o::c:e:ihv", long_options, &index);
+      switch (c) {
       case 'f' : /* from langage */
 	if  ((narg+1) >= argc )
 	  fatal((stderr,"missing argument to %s option",cp));
@@ -1653,7 +1671,9 @@ int parse_options(argc,argv)
 	if ((dr->outfile = fopen (argv[narg],"w+")) == NULL) {
 	  (void) fprintf (stderr,"can't open %s output file\n",argv[narg]);
 	  (void) fprintf (stderr,"assume stdout for output\n");
+    dr->outfile = stdout;
 	}
+  break;
       case 'e':
 	if  ((narg+1) >= argc )
 	  fatal((stderr,"missing argument to %s option",cp));
@@ -1795,6 +1815,7 @@ int notation_main(argc,argv)
      char * argv[];
 #endif
 {
+
   (void) fprintf(stderr,"%s\n",version_string);
   /* allocation of driver descriptor */
   dr = new_driver();
