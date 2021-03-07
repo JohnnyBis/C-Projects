@@ -594,6 +594,7 @@ static void free_move_list(d)
     free(d->sub);
     d->sub = (depl *) NULL;
   }
+
 }
 
 /* procedure upadate borad g with move m */
@@ -745,7 +746,6 @@ void enter_variation()
     /* set variables */
     l++;
     dr->variation = l;
-
     output_variation(dr,VARIATION_IN);
   }
 }
@@ -766,13 +766,14 @@ void exit_variation()
     output_variation(dr,VARIATION_OUT);
 
     l--;
-    free(m);
+
     m = stack[l].d ;
     tos = stack[l].b ;
-
     dr->iswhiteturn = stack[l].d1 ;
     dr->interrupt = stack[l].d2 ;
     dr->variation = l;
+    free(m);
+    free(tos);
   }
 }
 
@@ -1552,6 +1553,7 @@ int  parse_move(token)
   int etat =0;
   int code;
 
+  //init_parse(m);
   m = add_trailing_move(m);
   init_parse(m);
   m->type = MOVE;
@@ -1575,6 +1577,7 @@ int  parse_move(token)
     /*(void) fprintf(stderr, "ia panimaiou, davai\n");*/
   }
   /*init_parse(m);*/
+  //free(m);
   return(TRUE);
 }
 
@@ -1639,6 +1642,8 @@ int parse_options(argc,argv)
     {"output-file",  required_argument, NULL, 'o'},
     {"show-after",    required_argument, NULL, 'c'},
     {"end-after",    required_argument, NULL, 'e'},
+    {"board-only",    no_argument, NULL, 'b'},
+    {"driver",    required_argument, NULL, 'd'},
     {"no-headers", no_argument, NULL, 'i'},
     {"help", no_argument, NULL, 'h'},
     {"version", no_argument, NULL, 'v'}
@@ -1648,7 +1653,7 @@ int parse_options(argc,argv)
     (void) strcpy (cp,argv[narg]);
     switch (cp[0]) {
     case '-' :
-      c = getopt_long(argc, argv, "asf:t:o::c:e:ihv", long_options, &index);
+      c = getopt_long(argc, argv, "asf:t:o:c:e:bd:ihv", long_options, &index);
       switch (c) {
       case 'f' : /* from langage */
 	if  ((narg+1) >= argc )
@@ -1864,6 +1869,10 @@ int notation_main(argc,argv)
   /*init_parse(m);*/
   yylex();
 
+  //Freeing memory
+  free(theplay);
+
+
   if ((count == 0) && !error_flag)
     output_board(dr,tos);
 
@@ -1878,6 +1887,9 @@ int notation_main(argc,argv)
 
   /* close files */
   close_files();
+
+  free(dr);
+  //free(b->yy_ch_buf);
 
   /* exit properly */
   return 0;
