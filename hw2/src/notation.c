@@ -537,6 +537,7 @@ depl * add_trailing_move(mo)
      depl * mo;
 #endif
 {
+  //free(mo);
   mo->next = new_move();
   mo->next->prev = mo;
   mo->next->next = (depl *) NULL;
@@ -593,6 +594,7 @@ static void free_move_list(d)
     free(d->next);
     d->next = (depl *) NULL;
   }
+
   if (d->sub != (depl *) NULL) {
     free_move_list(d->sub);
     free(d->sub);
@@ -1763,8 +1765,17 @@ int parse_options(argc,argv)
       }
       break;
     default: /* assume this is the input file */
-      if ((infile = fopen (cp,"r")) == NULL)
-	fatal((stderr,"can't open %s input file\n",cp));
+
+      if ((infile = fopen (cp,"r")) == NULL){
+	     fatal((stderr,"can't open %s input file\n",cp));
+      }
+
+      char *extensionRes;
+      extensionRes = strrchr(cp, '.');
+      if(strcmp(extensionRes + 1, "ntn") != 0){
+        exit(1);
+      }
+
     }
     narg++;
   } /* process next arg */
@@ -1871,9 +1882,6 @@ int notation_main(argc,argv)
   /*init_parse(m);*/
   yylex();
 
-  //Freeing memory
-  free(theplay);
-
   if ((count == 0) && !error_flag)
     output_board(dr,tos);
 
@@ -1883,15 +1891,17 @@ int notation_main(argc,argv)
     fatal((stderr,"\nToo many errors"));
   }
 
-  free(tos);
-
   /* terminates output files */
   output_end(dr);
 
   /* close files */
   close_files();
-  yylex_destroy();
+
+  //Freeing memory
   free(dr);
+  free(theplay);
+  free(tos);
+  yylex_destroy();
 
   /* exit properly */
   return 0;

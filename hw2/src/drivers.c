@@ -826,8 +826,11 @@ void init_driver(dr,driver)
     error((stderr,"unknown driver"));
     break;
   }
-  if (dr->only_board)
+  if (dr->only_board) {
     dr->out_move = null_driver ;
+    dr->out_text = null_driver;
+    dr->out_variation = null_driver;
+  }
 
   dr->variation = 0;
   dr->iswhiteturn = FALSE ;
