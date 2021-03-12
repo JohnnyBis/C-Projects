@@ -772,7 +772,6 @@ void exit_variation()
     output_variation(dr,VARIATION_OUT);
 
     l--;
-    free(m);
     free(tos);
     m = stack[l].d ;
     tos = stack[l].b ;
@@ -1869,6 +1868,8 @@ int notation_main(argc,argv)
   m = new_move();
   init_move(m);
 
+  depl* storeM = m;
+
   /* allocation of the play descriptor */
   theplay = (play *) malloc (sizeof(play)) ;
   theplay->initial = tos ;
@@ -1898,9 +1899,13 @@ int notation_main(argc,argv)
   close_files();
 
   //Freeing memory
-  free(dr);
-  free(theplay);
+
   free(tos);
+  free_move_list(theplay->chain);
+  free(storeM);
+
+  free(theplay);
+  free(dr);
   yylex_destroy();
 
   /* exit properly */
