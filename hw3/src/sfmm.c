@@ -9,6 +9,8 @@
 #include "sfmm.h"
 #include <math.h>
 
+sf_block *usedClassSizePtr = NULL;
+
 int getAlignedSize(int size){
 
     int remainder;
@@ -47,24 +49,69 @@ void initializeFreeList() {
 	}
 }
 
-void blockPlacement(int classIndex, size_t size, void *ptr) {
-	int currentClassIndex = classIndex;
-	printf("CURR INDX %d\n", currentClassIndex);
-	int notFound = 1;
-	while (notFound && currentClassIndex < 8) {
-		void *nextBlockPtr = sf_free_list_heads[classIndex].body.links.next;
-		void *prevBlockPtr = sf_free_list_heads[classIndex].body.links.prev;
-		while (nextBlockPtr == prevBlockPtr) {
-			sf_header *currentBlockHeader = nextBlockPtr;
-			int blockSize = *currentBlockHeader & ~0xf;
-			printf("SIZE BLOCK: %d\n", blockSize);
+void freeBlockAllocator(size_t classSize, void *allocatedPtr) {
+	sf_block *classPtr = sf_free_list_heads[classSize].body.links.next;
+	sf_block *nextBlockPtr = sf_free_list_heads[classSize].body.links.next;
+
+	//Traverse specific class until last sf_block.
+	while (true) {
+		if(classPtr != (*nextBlockPtr).body.links.next) {
+			nextBlockPtr = (*nextBlockPtr).body.links.next;
+		}else{
 			break;
 		}
-		break;
-		// while ()
-		// sf_free_list_heads[NUM_FREE_LISTS - 1].body.links.next = ptr;
-		// }
 	}
+	sf_block *free_block = allocatedPtr;
+	(*free_block).body.links.next = classPtr;
+	(*free_block).body.links.prev = classPtr;
+	(*nextBlockPtr).body.links.next = allocatedPtr;
+}
+
+sf_block *freeBlockFinder(int classIndex, size_t requiredSize) {
+	int currentClassIndex = classIndex;
+	printf("START INDX %d\n", currentClassIndex);
+	while (currentClassIndex < 8) {
+		sf_block *classPtr = sf_free_list_heads[currentClassIndex].body.links.prev;
+		usedClassSizePtr = classPtr;
+		sf_block *nextBlockPtr = sf_free_list_heads[currentClassIndex].body.links.next;
+
+		while ((*nextBlockPtr).body.links.next != classPtr) {
+			int blockSize = (nextBlockPtr->header) & ~0xf;
+			printf("BLOCK SIZE: %d\n, %ld\n", blockSize, requiredSize);
+			if(blockSize >= requiredSize) {
+				return nextBlockPtr;
+			}
+			nextBlockPtr = (*nextBlockPtr).body.links.next;
+		}
+		int blockSize = (nextBlockPtr->header) & ~0xf;
+
+		//Check last block in the list.
+		if (blockSize >= requiredSize) {
+			return nextBlockPtr;
+		}
+		//No block found with enough size. Go to next class size.
+		currentClassIndex += 1;
+	}
+
+	//Not free space in the lists.
+	return NULL;
+}
+
+void *coalesc(void *ptr, size_t neededSize, int classSize) {
+	sf_block *class_head_node = &sf_free_list_heads[7];
+	sf_block *next_ptr = sf_free_list_heads[7].body.links.next;
+	if (class_head_node == next_ptr) {
+		//No wilderness block. No need to coalesce.
+		printf("HELLO\n");
+		freeBlockAllocator(classSize, ptr);
+	}else{
+		next_ptr->header += PAGE_SZ;
+		int newSize = (next_ptr->header) & ~0xf;
+		sf_header *footer = (void *) next_ptr + newSize - 8;
+		*footer = next_ptr->header;
+		return footer;
+	}
+	return NULL;
 }
 
 void *sf_malloc(size_t size) {
@@ -85,16 +132,14 @@ void *sf_malloc(size_t size) {
 		sf_block *bp = (sf_block *) ptr;
 		bp->header = alignedSize | 1;
 		ptr += alignedSize;
-		//printf("PAYLOAD: %p\n", bp->body.payload);
 
 		//Set epilogue.
 		sf_block *epilogue_start = (sf_mem_end() - 8);
 		epilogue_start->header = 1;
+
 		int bp_size = (sf_mem_end() - 8 - ptr);
-		//printf("SIZE: %d\n", bp_size);
 		sf_block *wld_ptr = ptr;
 		wld_ptr->header = bp_size | 0x2;
-		//wld_ptr->body.links.prev =
 
 		//Adds footer to wilderness block.
 		sf_header *footer = ptr + bp_size - 8;
@@ -104,30 +149,49 @@ void *sf_malloc(size_t size) {
 		int currentClassSize = getClassSize(bp_size);
 		printf("Class %d\n", currentClassSize);
 
-		sf_block *classPtr = sf_free_list_heads[currentClassSize].body.links.next;
-		sf_block *nextBlockPtr = sf_free_list_heads[currentClassSize].body.links.prev;
-
-		//Traverse specific class until last sf_block.
-		while (true) {
-			if(classPtr != (*nextBlockPtr).body.links.next) {
-				nextBlockPtr = (*nextBlockPtr).body.links.next;
-			}else{
-				break;
-			}
-		}
-		(*wld_ptr).body.links.next = classPtr;
-		(*wld_ptr).body.links.prev = classPtr;
-		(*nextBlockPtr).body.links.next = ptr;
-
-		//blockPlacement(currentClassSize, bp_size, ptr);
-
-		//Get correct block size.
-		//sf_block *allocatedBlock = (prologue + 32);
-		//allocatedBlock -> header = ( << 4)| 1;
-		sf_show_blocks();
-		sf_show_free_lists();
+		freeBlockAllocator(currentClassSize, ptr);
 		//return allocatedBlock;
+	}else{
+		int currentClassSize = getClassSize(alignedSize);
+		sf_block *freeFoundBlock = freeBlockFinder(currentClassSize, alignedSize);
+
+		if (freeFoundBlock != NULL) {
+			printf("HELLO\n");
+			int headerSize = freeFoundBlock->header & ~0xf;
+			if ((headerSize - alignedSize) % 16 == 0 && (headerSize - alignedSize) >= 32) {
+				//Split the block by changing the header size and alloc.
+
+				//Allocate memory of size alignedSize.
+				freeFoundBlock->header = alignedSize | 1;
+				sf_block *free_split_block = (void *) freeFoundBlock + alignedSize;
+
+				//Set header of remaining free list.
+				free_split_block->header = (headerSize - alignedSize) | 0x2;
+
+				sf_block *previousPtr = (*freeFoundBlock).body.links.prev;
+				(*previousPtr).body.links.next = (void *) freeFoundBlock + alignedSize;
+				(*free_split_block).body.links.prev = previousPtr;
+				(*free_split_block).body.links.next = usedClassSizePtr;
+
+				//Set the footer.
+				sf_header *new_footer = (void *)free_split_block + headerSize - alignedSize - 8;
+				*new_footer = free_split_block->header;
+			} else {
+				//Splitting not allowed.
+
+			}
+		}else{
+			//Add new memory page.
+			int currentClassSize = getClassSize(alignedSize);
+			void *new_page = sf_mem_grow();
+			void *new_wld_ptr = coalesc(new_page, alignedSize, currentClassSize);
+
+			//Allocate new pointer.
+			//freeBlockAllocator(currentClassSize, new_wld_ptr);
+		}
 	}
+	sf_show_blocks();
+	sf_show_free_lists();
 
     return NULL;
 }
