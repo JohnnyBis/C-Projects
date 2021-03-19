@@ -7,6 +7,7 @@
 #include <string.h>
 #include "debug.h"
 #include "sfmm.h"
+#include <errno.h>
 #include <math.h>
 
 sf_block *usedClassSizePtr = NULL;
@@ -102,7 +103,6 @@ void *coalesc(void *ptr, size_t neededSize, int classSize) {
 	sf_block *next_ptr = sf_free_list_heads[7].body.links.next;
 	if (class_head_node == next_ptr) {
 		//No wilderness block. No need to coalesce.
-		printf("HELLO\n");
 		freeBlockAllocator(classSize, ptr);
 	}else{
 		next_ptr->header += PAGE_SZ;
@@ -126,9 +126,37 @@ void *sf_malloc(size_t size) {
 	if (sf_mem_start() == sf_mem_end()) {
 		initializeFreeList();
 		void *ptr = sf_mem_grow() + 8; //Padding of the heap
+
+		//Set prologue
 		sf_block *prologue = (sf_block *) ptr;
 		prologue->header = 32 | 1; //Add size 32 bytes to epilogue header
 		ptr += 32; //Go to block header to be allocated.
+
+		printf("AL: %d\n", alignedSize);
+		int heapSize = sf_mem_end() - sf_mem_start();
+
+		while (heapSize < alignedSize) {
+			void *mem_grow_ptr = sf_mem_grow();
+			if (mem_grow_ptr == NULL) {
+				sf_block *freeBlockPtr = ptr;
+				heapSize -= 48;
+				freeBlockPtr->header = heapSize | 2;
+				//Set epilogue.
+				sf_block *epilogue_start = (sf_mem_end() - 8);
+				epilogue_start->header = 1;
+
+				//Adds footer to wilderness block.
+				sf_header *footer = ptr + heapSize - 8;
+				*footer = freeBlockPtr->header;
+
+				freeBlockAllocator(7, ptr);
+				sf_errno = ENOMEM;
+				return NULL;
+			}
+			heapSize = sf_mem_end() - sf_mem_start();
+		}
+
+		//Allocate memory of size alignedSize.
 		sf_block *bp = (sf_block *) ptr;
 		bp->header = alignedSize | 1;
 		ptr += alignedSize;
@@ -149,8 +177,13 @@ void *sf_malloc(size_t size) {
 		int currentClassSize = getClassSize(bp_size);
 		printf("Class %d\n", currentClassSize);
 
-		freeBlockAllocator(currentClassSize, ptr);
-		//return allocatedBlock;
+		printf("REMAINIG SIZE %d\n", bp_size);
+
+		if (bp_size != 0 || bp_size >= 32) {
+			freeBlockAllocator(currentClassSize, ptr);
+		}
+
+		return (void *) bp->body.payload;
 	}else{
 		int currentClassSize = getClassSize(alignedSize);
 		sf_block *freeFoundBlock = freeBlockFinder(currentClassSize, alignedSize);
@@ -176,24 +209,29 @@ void *sf_malloc(size_t size) {
 				//Set the footer.
 				sf_header *new_footer = (void *)free_split_block + headerSize - alignedSize - 8;
 				*new_footer = free_split_block->header;
+				//sf_show_blocks();
+				//sf_show_free_lists();
+				printf("HELLO\n");
+				return (void *) freeFoundBlock->body.payload;
 			} else {
 				//Splitting not allowed.
-
 			}
+
 		}else{
 			//Add new memory page.
 			int currentClassSize = getClassSize(alignedSize);
 			void *new_page = sf_mem_grow();
-			void *new_wld_ptr = coalesc(new_page, alignedSize, currentClassSize);
+			coalesc(new_page, alignedSize, currentClassSize);
+			//sf_show_blocks();
+			//sf_show_free_lists();
 
-			//Allocate new pointer.
-			//freeBlockAllocator(currentClassSize, new_wld_ptr);
+			printf("HELLO 3\n");
+			//Allocate new memory page.
+			return sf_malloc(size);
 		}
 	}
-	sf_show_blocks();
-	sf_show_free_lists();
 
-    return NULL;
+	return NULL;
 }
 
 void sf_free(void *pp) {

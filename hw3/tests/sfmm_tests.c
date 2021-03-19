@@ -54,6 +54,8 @@ Test(sfmm_basecode_suite, malloc_four_pages, .timeout = TEST_TIMEOUT) {
 	// for the header, footer, and the link pointers.
 	void *x = sf_malloc(32704);
 	cr_assert_not_null(x, "x is NULL!");
+	sf_show_blocks();
+	sf_show_free_lists();
 	assert_free_block_count(0, 0);
 	cr_assert(sf_errno == 0, "sf_errno is not 0!");
 }
@@ -63,6 +65,8 @@ Test(sfmm_basecode_suite, malloc_too_large, .timeout = TEST_TIMEOUT) {
 	void *x = sf_malloc(524288);
 
 	cr_assert_null(x, "x is not NULL!");
+	sf_show_blocks();
+	sf_show_free_lists();
 	assert_free_block_count(0, 1);
 	assert_free_block_count(131024, 1);
 	cr_assert(sf_errno == ENOMEM, "sf_errno is not ENOMEM!");
