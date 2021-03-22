@@ -3,37 +3,18 @@
 
 int main(int argc, char const *argv[]) {
 
-	// void *x = sf_malloc(32704);
-	// //cr_assert_not_null(x, "x is NULL!");
-	// printf("RES: %p\n", x);
+	sf_errno = 0;
+	size_t sz_w = 8, sz_x = 200, sz_y = 300, sz_z = 4;
+	/* void *w = */ sf_malloc(sz_w);
+	void *x = sf_malloc(sz_x);
+	void *y = sf_malloc(sz_y);
+	/* void *z = */ sf_malloc(sz_z);
 
-	// void *x = sf_malloc(524288);
-
-	// printf("RES %p\n", x);
-	// sf_show_blocks();
-
-	char * ptr1 = sf_malloc(1);
-    *ptr1 = 'A';
-    sf_show_blocks();
-    sf_show_free_lists();
-    printf("\n");
-
-    char * ptr2 = sf_malloc(1);
-    *(ptr2) = 'B';
-
-    sf_show_blocks();
-    sf_show_free_lists();
-    printf("\n");
-
-    int * ptr3 = sf_malloc(24 * sizeof(int));
-    *(ptr3 + 0) = 1;
-    *(ptr3 + 1) = 69;
-    *(ptr3 + 2) = 80;
-    *(ptr3 + 23) = 69;
-
-    sf_show_blocks();
-    sf_show_free_lists();
-    printf("\n");
+	sf_show_heap();
+	sf_free(y);
+	sf_show_heap();
+	sf_free(x);
+	sf_show_heap();
 
     return EXIT_SUCCESS;
 }

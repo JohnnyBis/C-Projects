@@ -72,7 +72,7 @@ sf_block *freeBlockFinder(int classIndex, size_t requiredSize) {
 	int currentClassIndex = classIndex;
 	printf("START INDX %d\n", currentClassIndex);
 	while (currentClassIndex < 8) {
-		sf_block *classPtr = sf_free_list_heads[currentClassIndex].body.links.prev;
+		sf_block *classPtr = &sf_free_list_heads[currentClassIndex];
 		usedClassSizePtr = classPtr;
 		sf_block *nextBlockPtr = sf_free_list_heads[currentClassIndex].body.links.next;
 
@@ -94,23 +94,37 @@ sf_block *freeBlockFinder(int classIndex, size_t requiredSize) {
 		currentClassIndex += 1;
 	}
 
-	//Not free space in the lists.
+	//No free space in the lists.
 	return NULL;
 }
 
-void *coalesc(void *ptr, size_t neededSize, int classSize) {
+void *coalesc_wilderness(void *ptr, size_t neededSize, int classSize) {
+
 	sf_block *class_head_node = &sf_free_list_heads[7];
 	sf_block *next_ptr = sf_free_list_heads[7].body.links.next;
 	if (class_head_node == next_ptr) {
 		//No wilderness block. No need to coalesce.
-		freeBlockAllocator(classSize, ptr);
+
+		sf_block *new_block = ptr - 8;
+		new_block->header = PAGE_SZ | 0x2;
+		sf_header *footer = ptr + PAGE_SZ - 8;
+		*footer = new_block->header;
+		class_head_node->body.links.next = new_block;
+		new_block->body.links.next = class_head_node;
+		new_block->body.links.prev = class_head_node;
+
 	}else{
 		next_ptr->header += PAGE_SZ;
 		int newSize = (next_ptr->header) & ~0xf;
 		sf_header *footer = (void *) next_ptr + newSize - 8;
 		*footer = next_ptr->header;
+
+		//sf_show_blocks();
+		//sf_show_free_lists();
 		return footer;
 	}
+	//sf_show_blocks();
+	//sf_show_free_lists();
 	return NULL;
 }
 
@@ -132,15 +146,17 @@ void *sf_malloc(size_t size) {
 		prologue->header = 32 | 1; //Add size 32 bytes to epilogue header
 		ptr += 32; //Go to block header to be allocated.
 
-		printf("AL: %d\n", alignedSize);
+		//printf("AL: %d\n", alignedSize);
 		int heapSize = sf_mem_end() - sf_mem_start();
 
 		while (heapSize < alignedSize) {
 			void *mem_grow_ptr = sf_mem_grow();
+
 			if (mem_grow_ptr == NULL) {
 				sf_block *freeBlockPtr = ptr;
 				heapSize -= 48;
 				freeBlockPtr->header = heapSize | 2;
+
 				//Set epilogue.
 				sf_block *epilogue_start = (sf_mem_end() - 8);
 				epilogue_start->header = 1;
@@ -153,12 +169,13 @@ void *sf_malloc(size_t size) {
 				sf_errno = ENOMEM;
 				return NULL;
 			}
+
 			heapSize = sf_mem_end() - sf_mem_start();
 		}
 
 		//Allocate memory of size alignedSize.
 		sf_block *bp = (sf_block *) ptr;
-		bp->header = alignedSize | 1;
+		bp->header = alignedSize | 0x3;
 		ptr += alignedSize;
 
 		//Set epilogue.
@@ -175,9 +192,6 @@ void *sf_malloc(size_t size) {
 
 		//Add wilderness block to free_list.
 		int currentClassSize = getClassSize(bp_size);
-		printf("Class %d\n", currentClassSize);
-
-		printf("REMAINIG SIZE %d\n", bp_size);
 
 		if (bp_size != 0 || bp_size >= 32) {
 			freeBlockAllocator(currentClassSize, ptr);
@@ -187,15 +201,16 @@ void *sf_malloc(size_t size) {
 	}else{
 		int currentClassSize = getClassSize(alignedSize);
 		sf_block *freeFoundBlock = freeBlockFinder(currentClassSize, alignedSize);
-
+		//printf("FREE FOUND BLOCK: %p\n", freeFoundBlock);
+		//printf("MEMORY ASKED: %d\n", alignedSize);
 		if (freeFoundBlock != NULL) {
-			printf("HELLO\n");
+
 			int headerSize = freeFoundBlock->header & ~0xf;
 			if ((headerSize - alignedSize) % 16 == 0 && (headerSize - alignedSize) >= 32) {
 				//Split the block by changing the header size and alloc.
 
 				//Allocate memory of size alignedSize.
-				freeFoundBlock->header = alignedSize | 1;
+				freeFoundBlock->header = alignedSize | 0x3;
 				sf_block *free_split_block = (void *) freeFoundBlock + alignedSize;
 
 				//Set header of remaining free list.
@@ -211,21 +226,35 @@ void *sf_malloc(size_t size) {
 				*new_footer = free_split_block->header;
 				//sf_show_blocks();
 				//sf_show_free_lists();
-				printf("HELLO\n");
 				return (void *) freeFoundBlock->body.payload;
 			} else {
 				//Splitting not allowed.
+
+				//Allocate memory of size alignedSize.
+				freeFoundBlock->header |= 0x3;
+
+				//(*usedClassSizePtr).body.links.next = (void *) freeFoundBlock + alignedSize;
+				//sf_block *free_split_block = (void *) freeFoundBlock + alignedSize;
+
+				usedClassSizePtr->body.links.next = usedClassSizePtr;
+				usedClassSizePtr->body.links.prev = usedClassSizePtr;
+				// sf_block *previousPtr = (*freeFoundBlock).body.links.prev;
+				// (*previousPtr).body.links.next = free_split_block;
+				// (*free_split_block).body.links.prev = previousPtr;
+				// (*free_split_block).body.links.next = usedClassSizePtr;
+
+				//printf("PAYLOAD: %p\n", freeFoundBlock);
+				return (void *) freeFoundBlock->body.payload;
 			}
 
 		}else{
 			//Add new memory page.
-			int currentClassSize = getClassSize(alignedSize);
+			//int currentClassSize = getClassSize(alignedSize);
 			void *new_page = sf_mem_grow();
-			coalesc(new_page, alignedSize, currentClassSize);
-			//sf_show_blocks();
-			//sf_show_free_lists();
 
-			printf("HELLO 3\n");
+			//printf("NEW PAGE: %p", new_page);
+			coalesc_wilderness(new_page, alignedSize, currentClassSize);
+
 			//Allocate new memory page.
 			return sf_malloc(size);
 		}
@@ -234,8 +263,111 @@ void *sf_malloc(size_t size) {
 	return NULL;
 }
 
+int getBlockSize(sf_block *block) {
+	return block->header & ~0xf;
+}
+
+void *coalesc_blocks(void *p, int current_block_size) {
+	p -= 8;
+	sf_block *p_block = p;
+	sf_block *next_block = (void*) p_block + current_block_size;
+	int next_block_size = getBlockSize(next_block);
+	int is_next_alloc = next_block->header & 0x1;
+	sf_header *prev_block_footer = (void *) p_block - 8;
+
+
+	int prev_alloc = (p_block->header & 0x2) >> 1;
+
+	//printf("RES: %d, %d, %p, %d\n", prev_alloc, is_next_alloc, next_block, current_block_size);
+	//Case 1: Prev and next block allocated --> no coalescing.
+	if (prev_alloc == 1 && is_next_alloc == 1) {
+		printf("HELLLOOO\n");
+		//Change status from alloc to free.
+		p_block->header = current_block_size | 0x2;
+
+		//Set the footer.
+		sf_header *new_footer = (void *) p_block + current_block_size - 8;
+		*new_footer = p_block->header;
+
+		next_block->header &= 0xFFFFFFFFD;
+
+		return (void *) p_block;
+	//Case 2: Prev block allocated, Next block free --> coalesce with next.
+	}else if (prev_alloc == 1 && is_next_alloc == 0) {
+		printf("2222222\n");
+		//Set header.
+		p_block->header += next_block_size;
+		p_block->header &= ~1;
+
+		//Set the footer.
+		sf_header *new_footer = p + next_block_size - 8;
+		*new_footer = p_block->header;
+
+		return (void *) p;
+	//Case 3: Prev block free, Next block allocated --> coalesce with prev.
+	}else if (prev_alloc == 0 && is_next_alloc == 1) {
+		printf("333333\n");
+		int previous_block_size = *prev_block_footer & ~0xF;
+		sf_block *prev_block_p = p - previous_block_size;
+		prev_block_p->header += current_block_size;
+		*prev_block_footer = prev_block_p->header;
+
+		return (void *) prev_block_p;
+	//Case 4: Prev and next block free.
+	}else if (prev_alloc == 0 && is_next_alloc == 0) {
+		printf("44444\n");
+
+		int previous_block_size = *prev_block_footer & ~0xF;
+		sf_block *prev_block = p - previous_block_size;
+
+		//Remove prev block from free list.
+		sf_block *before_prev_block_p = prev_block->body.links.prev;
+		sf_block *after_prev_block_p = prev_block->body.links.next;
+		before_prev_block_p->body.links.next = after_prev_block_p;
+
+		//Remove next block from free list.
+		sf_block *before_next_block_p = next_block->body.links.prev;
+		sf_block *after_next_block_p = next_block->body.links.next;
+		before_next_block_p->body.links.next = after_next_block_p;
+
+		//Change header of prev block = prev_block_size + current_block_size + next_block_size
+		prev_block->header += (current_block_size + next_block_size);
+
+
+		int new_size = getBlockSize(prev_block);
+		sf_header *new_block_footer = (void *) prev_block + new_size - 8;
+		*new_block_footer = prev_block->header;
+
+		return (void *) prev_block;
+	}
+	return NULL;
+}
+
 void sf_free(void *pp) {
-    return;
+	sf_block * pp_block = pp - 8;
+	int blockSize = getBlockSize(pp_block);
+	int alloc = pp_block->header & 0x1;
+	if (pp == NULL || blockSize % 16 != 0 || (size_t) pp % 16 != 0 || blockSize < 32 || alloc == 0) {
+		abort();
+	}else if (pp < sf_mem_start() || (pp + blockSize) > sf_mem_end()) {
+		abort();
+	}
+
+	sf_block *new_coalesced_p = coalesc_blocks(pp, blockSize);
+	int new_class_index = getClassSize((size_t) getBlockSize(new_coalesced_p));
+
+
+	sf_block *sentinel_node = &sf_free_list_heads[new_class_index];
+	sf_block *next_block_ptr = sentinel_node->body.links.next;
+
+	sentinel_node->body.links.next = new_coalesced_p;
+	new_coalesced_p->body.links.prev = sentinel_node;
+	new_coalesced_p->body.links.next = next_block_ptr;
+
+	if (next_block_ptr != sentinel_node) {
+		next_block_ptr->body.links.prev = new_coalesced_p;
+	}
+
 }
 
 void *sf_realloc(void *pp, size_t rsize) {
