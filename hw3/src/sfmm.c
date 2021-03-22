@@ -295,13 +295,21 @@ void *coalesc_blocks(void *p, int current_block_size) {
 	//Case 2: Prev block allocated, Next block free --> coalesce with next.
 	}else if (prev_alloc == 1 && is_next_alloc == 0) {
 		printf("2222222\n");
+
 		//Set header.
 		p_block->header += next_block_size;
 		p_block->header &= ~1;
 
+		int new_size = getBlockSize(p_block);
+
 		//Set the footer.
-		sf_header *new_footer = p + next_block_size - 8;
+		sf_header *new_footer = p + new_size - 8;
 		*new_footer = p_block->header;
+
+		//Remove next block from free list.
+		sf_block *before_next_block_p = next_block->body.links.prev;
+		sf_block *after_next_block_p = next_block->body.links.next;
+		before_next_block_p->body.links.next = after_next_block_p;
 
 		return (void *) p;
 	//Case 3: Prev block free, Next block allocated --> coalesce with prev.
@@ -310,7 +318,16 @@ void *coalesc_blocks(void *p, int current_block_size) {
 		int previous_block_size = *prev_block_footer & ~0xF;
 		sf_block *prev_block_p = p - previous_block_size;
 		prev_block_p->header += current_block_size;
-		*prev_block_footer = prev_block_p->header;
+		prev_block_p->header &= ~1;
+
+		int new_size = getBlockSize(prev_block_p);
+		sf_header *new_block_footer = (void *) prev_block_p + new_size - 8;;
+		*new_block_footer = prev_block_p->header;
+
+		//Remove prev block from free list.
+		sf_block *before_prev_block_p = prev_block_p->body.links.prev;
+		sf_block *after_prev_block_p = prev_block_p->body.links.next;
+		before_prev_block_p->body.links.next = after_prev_block_p;
 
 		return (void *) prev_block_p;
 	//Case 4: Prev and next block free.
