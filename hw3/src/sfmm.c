@@ -74,7 +74,6 @@ void freeBlockAllocator(size_t classSize, void *allocatedPtr) {
 
 sf_block *freeBlockFinder(int classIndex, size_t requiredSize) {
 	int currentClassIndex = classIndex;
-	printf("START INDX %d\n", currentClassIndex);
 	while (currentClassIndex < 8) {
 		sf_block *classPtr = &sf_free_list_heads[currentClassIndex];
 		usedClassSizePtr = classPtr;
@@ -82,7 +81,6 @@ sf_block *freeBlockFinder(int classIndex, size_t requiredSize) {
 
 		while ((*nextBlockPtr).body.links.next != classPtr) {
 			int blockSize = (nextBlockPtr->header) & ~0xf;
-			printf("BLOCK SIZE: %d\n, %ld\n", blockSize, requiredSize);
 			if(blockSize >= requiredSize) {
 				return nextBlockPtr;
 			}
@@ -205,8 +203,7 @@ void *sf_malloc(size_t size) {
 	}else{
 		int currentClassSize = getClassSize(alignedSize);
 		sf_block *freeFoundBlock = freeBlockFinder(currentClassSize, alignedSize);
-		//printf("FREE FOUND BLOCK: %p\n", freeFoundBlock);
-		//printf("MEMORY ASKED: %d\n", alignedSize);
+
 		if (freeFoundBlock != NULL) {
 
 			int headerSize = freeFoundBlock->header & ~0xf;
@@ -221,7 +218,6 @@ void *sf_malloc(size_t size) {
 
 				int freeRemainder = headerSize - alignedSize;
 
-				printf("HELLO %d, %d\n", getClassSize(oldSize), getClassSize(freeRemainder));
 				//If same class size between old free block and new free block.
 				if (getClassSize(freeRemainder) == getClassSize(oldSize)) {
 					//printf("******************************\n");
@@ -242,8 +238,6 @@ void *sf_malloc(size_t size) {
 					sf_header *new_footer = (void *)free_split_block + freeRemainder - 8;
 					*new_footer = free_split_block->header;
 
-					//printf("******************************\n");
-					//sf_show_heap();
 				}else{
 					//Remove old node.
 					sf_block *before_block_p = freeFoundBlock->body.links.prev;
@@ -263,14 +257,11 @@ void *sf_malloc(size_t size) {
 					free_split_block->body.links.prev = sentinel;
 					free_split_block->body.links.next = next_sentinel_p;
 
-
 					//Set the footer.
 					sf_header *new_footer = (void *)free_split_block + freeRemainder - 8;
 					*new_footer = free_split_block->header;
 
 				}
-
-
 
 				return (void *) freeFoundBlock->body.payload;
 			} else {
@@ -294,7 +285,6 @@ void *sf_malloc(size_t size) {
 			//int currentClassSize = getClassSize(alignedSize);
 			void *new_page = sf_mem_grow();
 
-			//printf("NEW PAGE: %p", new_page);
 			coalesc_wilderness(new_page, alignedSize, currentClassSize);
 
 			//Allocate new memory page.
@@ -316,10 +306,9 @@ void *coalesc_blocks(void *p, int current_block_size) {
 
 	int prev_alloc = (p_block->header & 0x2) >> 1;
 
-	//printf("RES: %d, %d, %p, %d\n", prev_alloc, is_next_alloc, next_block, current_block_size);
 	//Case 1: Prev and next block allocated --> no coalescing.
 	if (prev_alloc == 1 && is_next_alloc == 1) {
-		printf("MMMMM\n");
+
 		//Change status from alloc to free.
 		p_block->header = current_block_size | 0x2;
 
@@ -332,7 +321,7 @@ void *coalesc_blocks(void *p, int current_block_size) {
 		return (void *) p_block;
 	//Case 2: Prev block allocated, Next block free --> coalesce with next.
 	}else if (prev_alloc == 1 && is_next_alloc == 0) {
-		printf("HELLO\n");
+
 		//Set header.
 		p_block->header += next_block_size;
 		p_block->header &= ~1;
@@ -354,7 +343,6 @@ void *coalesc_blocks(void *p, int current_block_size) {
 		return (void *) p;
 	//Case 3: Prev block free, Next block allocated --> coalesce with prev.
 	}else if (prev_alloc == 0 && is_next_alloc == 1) {
-		printf("HELLOOOO\n");
 
 		int previous_block_size = *prev_block_footer & ~0xF;
 		sf_block *prev_block_p = p - previous_block_size;
@@ -371,13 +359,12 @@ void *coalesc_blocks(void *p, int current_block_size) {
 		before_prev_block_p->body.links.next = after_prev_block_p;
 
 		sf_block *next_allocated = (void *) prev_block_p + new_size;
-		printf("NEXTTTTT: %p, %p, %d\n", prev_block_p, next_allocated, new_size);
 		next_allocated->header &= ~(1 << 1); //Change pal for next allocated block.
 
 		return (void *) prev_block_p;
 	//Case 4: Prev and next block free.
 	}else if (prev_alloc == 0 && is_next_alloc == 0) {
-		printf("HIIII\n");
+
 		int previous_block_size = *prev_block_footer & ~0xF;
 		sf_block *prev_block = p - previous_block_size;
 
@@ -411,6 +398,7 @@ void sf_free(void *pp) {
 	sf_block * pp_block = pp - 8;
 	int blockSize = getBlockSize(pp_block);
 	int alloc = pp_block->header & 0x1;
+
 	if (pp == NULL || blockSize % 16 != 0 || (size_t) pp % 16 != 0 || blockSize < 32 || alloc == 0) {
 		abort();
 	}else if (pp < sf_mem_start() || (pp + blockSize) > sf_mem_end()) {
@@ -440,49 +428,51 @@ void *sf_realloc(void *pp, size_t rsize) {
 	int originalSize = getBlockSize(pp_block);
 	int alloc = pp_block->header & 0x1;
 
-	printf("HELLO %p\n", pp);
 	if (pp == NULL || originalSize % 16 != 0 || (size_t) pp % 16 != 0 || originalSize < 32 || alloc == 0) {
-		printf("HI\n");
 		abort();
 	}else if (pp < sf_mem_start() || (pp + originalSize) > sf_mem_end()) {
 		abort();
 	}
 
-	rsize = getAlignedSize(rsize);
+	int aligned_rsize = getAlignedSize(rsize + 8);
 
-	if (rsize == 0) {
+	if (aligned_rsize == 0) {
 		sf_free(pp);
 		return NULL;
 	}
 
 	//Reallocate to bigger size.
-	if (originalSize < rsize) {
-		void *new_block_p = malloc(rsize);
+	if (originalSize < aligned_rsize) {
+		void *new_block_p = sf_malloc(rsize);
+
 		if (new_block_p) {
 			memcpy(new_block_p, pp, originalSize);
 			sf_free(pp);
       	}
       	return new_block_p;
 
-	}else if(originalSize > rsize) {
-		int splinterSize = originalSize - (rsize + 8);
+	}else if(originalSize > aligned_rsize) {
+		int splinterSize = originalSize - aligned_rsize;
 
 		//If splinter less than 32 bytes, don't split.
 		if (splinterSize < 32) {
 			return pp;
+
 		}else{
-			int new_aligned_size = getAlignedSize(rsize);
 			int current_block_flags = pp_block->header & 0xF;
-			sf_block *freed_block = pp + new_aligned_size;
-			pp_block->header = new_aligned_size | current_block_flags;
-			freed_block->header = (originalSize - new_aligned_size) | 0x3;
-			sf_free(freed_block);
+			sf_block *freed_block = pp - 8 + aligned_rsize;
+
+			pp_block->header = aligned_rsize | current_block_flags;
+
+			freed_block->header = splinterSize | 0x3;
+
+			sf_free(freed_block->body.payload);
 			return pp;
 		}
 	}
 
 	//If same size
-    return pp + 8;
+    return pp;
 }
 
 void *sf_memalign(size_t size, size_t align) {
