@@ -151,7 +151,7 @@ void *sf_malloc(size_t size) {
 		//printf("AL: %d\n", alignedSize);
 		int heapSize = sf_mem_end() - sf_mem_start();
 
-		while (heapSize < alignedSize) {
+		while (heapSize <= alignedSize) {
 			void *mem_grow_ptr = sf_mem_grow();
 
 			if (mem_grow_ptr == NULL) {
@@ -173,6 +173,14 @@ void *sf_malloc(size_t size) {
 			}
 
 			heapSize = sf_mem_end() - sf_mem_start();
+		}
+
+		if(alignedSize + 48 > heapSize) {
+			void *mem_grow_ptr = sf_mem_grow();
+			if (mem_grow_ptr == NULL) {
+				sf_errno = ENOMEM;
+				return NULL;
+			}
 		}
 
 		//Allocate memory of size alignedSize.
@@ -220,8 +228,6 @@ void *sf_malloc(size_t size) {
 
 				//If same class size between old free block and new free block.
 				if (getClassSize(freeRemainder) == getClassSize(oldSize)) {
-					//printf("******************************\n");
-					//sf_show_heap();
 
 					//Set header of remaining free list.
 					free_split_block->header = freeRemainder | 0x2;
@@ -284,7 +290,10 @@ void *sf_malloc(size_t size) {
 			//Add new memory page.
 			//int currentClassSize = getClassSize(alignedSize);
 			void *new_page = sf_mem_grow();
-
+			if (new_page == NULL) {
+				sf_errno = ENOMEM;
+				return NULL;
+			}
 			coalesc_wilderness(new_page, alignedSize, currentClassSize);
 
 			//Allocate new memory page.
@@ -436,7 +445,7 @@ void *sf_realloc(void *pp, size_t rsize) {
 
 	int aligned_rsize = getAlignedSize(rsize + 8);
 
-	if (aligned_rsize == 0) {
+	if (rsize == 0) {
 		sf_free(pp);
 		return NULL;
 	}
@@ -449,6 +458,7 @@ void *sf_realloc(void *pp, size_t rsize) {
 			memcpy(new_block_p, pp, originalSize);
 			sf_free(pp);
       	}
+
       	return new_block_p;
 
 	}else if(originalSize > aligned_rsize) {
@@ -467,6 +477,7 @@ void *sf_realloc(void *pp, size_t rsize) {
 			freed_block->header = splinterSize | 0x3;
 
 			sf_free(freed_block->body.payload);
+
 			return pp;
 		}
 	}
@@ -475,6 +486,58 @@ void *sf_realloc(void *pp, size_t rsize) {
     return pp;
 }
 
+int alignedSizeBy(size_t size, size_t align) {
+	int remainder;
+
+    while (size % align != 0) {
+    	remainder = size % align;
+        size += align - remainder;
+    }
+
+    if (size <= 32) {
+    	return 32;
+    }
+    return size;
+}
+
 void *sf_memalign(size_t size, size_t align) {
+	if (align == 0 || align < 32 || size == 0) {
+		sf_errno = EINVAL;
+		return NULL;
+	}
+
+	int log2Res = log2(align);
+	int isValid = floor(log2Res) == ceil(log2Res);
+
+	if(isValid == 0) {
+		sf_errno = EINVAL;
+		return NULL;
+	}
+
+	int new_size = getAlignedSize(size) + align + 32;
+	void *p = malloc(new_size);
+
+	if ((size_t) p % align == 0) {
+		return p;
+	}else{
+		//Payload not yet aligned.
+		void *saved_p = p;
+		sf_block *aligned_p = p + (align - ((size_t) p % align));
+		int aligned_block_size = getAlignedSize(size);
+
+
+		aligned_p->header = aligned_block_size | 0x1;
+		//Free beginning pointer.
+		sf_free(saved_p);
+
+		//If current block size
+		if (getBlockSize(aligned_p) > size) {
+			void * to_be_freed_p = aligned_p + aligned_block_size;
+			free(to_be_freed_p);
+		}
+		return aligned_p;
+	}
+
+
     return NULL;
 }

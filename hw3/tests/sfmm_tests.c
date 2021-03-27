@@ -184,3 +184,53 @@ Test(sfmm_basecode_suite, realloc_smaller_block_free_block, .timeout = TEST_TIME
 //STUDENT UNIT TESTS SHOULD BE WRITTEN BELOW
 //DO NOT DELETE THESE COMMENTS
 //############################################
+
+Test(sfmm_basecode_suite, malloc_zero, .timeout = TEST_TIMEOUT) {
+	void *x = sf_malloc(0);
+	sf_malloc(0);
+	sf_malloc(0);
+
+	cr_assert(x==NULL, "y is not NULL! The heap should not be initialized.");
+}
+
+Test(sfmm_basecode_suite, realloc_unaligned_pointer_abort, .timeout = TEST_TIMEOUT) {
+	char *p = sf_malloc(50);
+	char *new = sf_realloc(p, 120);
+	sf_malloc(150);
+	sf_malloc(300);
+	sf_realloc(new + 1, 300);
+	//This test should abort() and show as a crash.
+}
+
+Test(sfmm_basecode_suite, realloc_mem_too_large, .timeout=TEST_TIMEOUT) {
+	sf_errno = 0;
+	char *p = sf_malloc(50);
+ 	char *new_p = sf_realloc(p, 524288);
+	cr_assert_null(new_p, "x is not NULL!");
+	assert_free_block_count(0, 1);
+	assert_free_block_count(130960, 1);
+	cr_assert(sf_errno == ENOMEM, "sf_errno is not ENOMEM!");
+}
+
+Test(sfmm_basecode_suite, realloc_zero_size, .timeout=TEST_TIMEOUT) {
+	char *p = sf_malloc(50);
+ 	char *new_p = sf_realloc(p, 0);
+ 	cr_assert_null(new_p, "x is not NULL!");
+ 	assert_free_block_count(0, 1);
+ 	assert_free_block_count(8144, 1);
+}
+
+Test(sfmm_basecode_suite, malloc_exact_page_size, .timeout=TEST_TIMEOUT) {
+	int *p = sf_malloc(8180);
+
+ 	cr_assert_not_null(p, "x is NULL!");
+
+	*p = 8000;
+
+	cr_assert(*p == 8000, "sf_malloc failed to give proper space for an int!");
+
+	assert_free_block_count(0, 1);
+	assert_free_block_count(8144, 1);
+
+	cr_assert(sf_errno == 0, "sf_errno is not zero!");
+}
