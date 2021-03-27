@@ -410,7 +410,7 @@ void sf_free(void *pp) {
 
 	if (pp == NULL || blockSize % 16 != 0 || (size_t) pp % 16 != 0 || blockSize < 32 || alloc == 0) {
 		abort();
-	}else if (pp < sf_mem_start() || (pp + blockSize) > sf_mem_end()) {
+	}else if (pp - 8 < sf_mem_start() || (pp - 8 + blockSize) > sf_mem_end()) {
 		abort();
 	}
 
