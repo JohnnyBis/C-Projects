@@ -408,11 +408,17 @@ void sf_free(void *pp) {
 	int blockSize = getBlockSize(pp_block);
 	int alloc = pp_block->header & 0x1;
 
-	if (pp == NULL || blockSize % 16 != 0 || (size_t) pp % 16 != 0 || blockSize < 32 || alloc == 0) {
+	if(pp == NULL || (size_t) pp % 16 != 0 ) {
+		sf_errno = EINVAL;
+		abort();
+	}else if (blockSize % 16 != 0 || blockSize < 32 || alloc == 0) {
+		sf_errno = EINVAL;
 		abort();
 	}else if (pp - 8 < sf_mem_start() || (pp - 8 + blockSize) > sf_mem_end()) {
+		sf_errno = EINVAL;
 		abort();
 	}
+
 
 	sf_block *new_coalesced_p = coalesc_blocks(pp, blockSize);
 	int new_class_index = getClassSize((size_t) getBlockSize(new_coalesced_p));
@@ -437,9 +443,14 @@ void *sf_realloc(void *pp, size_t rsize) {
 	int originalSize = getBlockSize(pp_block);
 	int alloc = pp_block->header & 0x1;
 
-	if (pp == NULL || originalSize % 16 != 0 || (size_t) pp % 16 != 0 || originalSize < 32 || alloc == 0) {
+	if(pp == NULL || (size_t) pp % 16 != 0 ) {
+		sf_errno = EINVAL;
 		abort();
-	}else if (pp < sf_mem_start() || (pp + originalSize) > sf_mem_end()) {
+	}else if (originalSize % 16 != 0 || originalSize < 32 || alloc == 0) {
+		sf_errno = EINVAL;
+		abort();
+	}else if (pp - 8 < sf_mem_start() || (pp - 8 + originalSize) > sf_mem_end()) {
+		sf_errno = EINVAL;
 		abort();
 	}
 

@@ -198,6 +198,7 @@ Test(sfmm_basecode_suite, realloc_unaligned_pointer_abort, .timeout = TEST_TIMEO
 	char *new = sf_realloc(p, 120);
 	sf_malloc(150);
 	sf_malloc(300);
+	sf_errno = 0;
 	sf_realloc(new + 1, 300);
 	//This test should abort() and show as a crash.
 }
