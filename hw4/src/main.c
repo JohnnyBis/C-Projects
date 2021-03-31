@@ -53,13 +53,13 @@ int main(int argc, char *argv[])
 	}
     }
     if(in != NULL) {
-	quit = run_cli(in, out);
-	fclose(in);
-	fflush(out);
+		quit = run_cli(in, out);
+		fclose(in);
+		fflush(out);
     }
     if(!quit) {
-	run_cli(stdin, out);
-	fflush(out);
+		run_cli(stdin, out);
+		fflush(out);
     }
     conversions_fini();
     sf_fini();
