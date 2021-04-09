@@ -18,7 +18,17 @@ typedef struct printer {
 	FILE_TYPE* file_type;
 } PRINTER;
 
+typedef struct job {
+	int id;
+	char* creation;
+	JOB_STATUS status;
+	char* eligible;
+	char *file_name;
+	FILE_TYPE* file_type;
+} JOB;
+
 PRINTER printers[MAX_PRINTERS];
+JOB jobs[MAX_JOBS];
 
 int num_of_args(char *args) {
 	int argc = 0;
@@ -34,6 +44,21 @@ int num_of_args(char *args) {
 
 void error_message(int argc, int req, char *command) {
 	printf("Wrong number of args (given: %d, required: %d) for CLI command '%s'\n", argc, req, command);
+}
+
+FILE_TYPE *get_file_type(char *file_name) {
+    char *file_extension = strchr(file_name, '.');
+    if(file_extension) {
+        printf("BEFORE : %s\n", file_extension);
+        file_extension++;
+        printf("AFTER: %s\n", file_extension);
+        return find_type(file_extension);
+    }
+    return NULL;
+}
+
+void find_available_printer(char *file_name, FILE_TYPE *file_type) {
+
 }
 
 int run_cli(FILE *in, FILE *out)
@@ -97,7 +122,7 @@ int run_cli(FILE *in, FILE *out)
     			if(printers[i].name == NULL) {
     				break;
     			}
-    			printf("PRINTER: id=%d, name=%s, type=%s, status=%s\n", printers[i].id, printers[i].name, printer_status_names[printers[i].status], printers[i].file_type->name);
+    			printf("PRINTER: id=%d, name=%s, type=%s, status=%s\n", printers[i].id, printers[i].name, printers[i].file_type->name, printer_status_names[printers[i].status]);
     		}
 
     		sf_cmd_ok();
@@ -128,7 +153,22 @@ int run_cli(FILE *in, FILE *out)
     		printf("PRINTER: id=%d, name=%s, type=%s, status=%s\n", new_printer.id, new_printer.name, printer_status_names[new_printer.status], new_printer.file_type->name);
     		sf_cmd_ok();
 
-    	}else if(strncmp(input, "conversion", 10) == 0) {
+    	}else if (strncmp(input, "print", 5) == 0) {
+
+            if (argc != 1) {
+                error_message(argc, 1, "print");
+                sf_cmd_error("argc count");
+                continue;
+            }
+            char *job_name = arguments[1];
+            FILE_TYPE *file_type = get_file_type(job_name);
+            if (file_type == NULL) {
+                sf_cmd_error("print (file type)");
+                continue;
+            }
+            find_available_printer(job_name, file_type);
+            sf_cmd_ok();
+        }else if(strncmp(input, "conversion", 10) == 0) {
     		if (argc != 3) {
     			error_message(argc, 3, "conversions");
     			sf_cmd_error("argc count");
@@ -136,6 +176,51 @@ int run_cli(FILE *in, FILE *out)
     		}
     		sf_cmd_ok();
 
+    	}else if(strncmp(input, "jobs", 4) == 0) {
+    		if (argc != 0) {
+    			error_message(argc, 0, "jobs");
+    			sf_cmd_error("argc count");
+    			continue;
+    		}
+    		sf_cmd_ok();
+
+    	}else if(strncmp(input, "enable", 6) == 0) {
+    		if (argc != 1) {
+    			error_message(argc, 1, "enabled");
+    			sf_cmd_error("argc count");
+    			continue;
+    		}
+
+    		for(int i=0; i < MAX_PRINTERS; i++) {
+    			if(printers[i].name == NULL) {
+    				break;
+    			}else if (printers[i].name == arguments[1]) {
+    				printers[i].status = PRINTER_IDLE;
+    				sf_printer_status(printers[i].name, PRINTER_IDLE);
+    				sf_cmd_ok();
+    				break;
+    			}
+    		}
+    		sf_cmd_error("enable (no printer)");
+
+    	}else if(strncmp(input, "disable", 7) == 0) {
+    		if (argc != 1) {
+    			error_message(argc, 1, "disable");
+    			sf_cmd_error("argc count");
+    			continue;
+    		}
+
+    		for(int i=0; i < MAX_PRINTERS; i++) {
+    			if(printers[i].name == NULL) {
+    				break;
+    			}else if (printers[i].name == arguments[1]) {
+    				printers[i].status = PRINTER_DISABLED;
+    				sf_printer_status(printers[i].name, PRINTER_DISABLED);
+    				sf_cmd_ok();
+    				break;
+    			}
+    		}
+    		sf_cmd_error("enable (no printer)");
     	}
     }
     return 0;
