@@ -49,21 +49,38 @@ void error_message(int argc, int req, char *command) {
 FILE_TYPE *get_file_type(char *file_name) {
     char *file_extension = strchr(file_name, '.');
     if(file_extension) {
-        printf("BEFORE : %s\n", file_extension);
         file_extension++;
-        printf("AFTER: %s\n", file_extension);
         return find_type(file_extension);
     }
     return NULL;
 }
 
-void find_available_printer(char *file_name, FILE_TYPE *file_type) {
+PRINTER *find_available_printer(char *file_name, FILE_TYPE *file_type, char **eligible_printers, int printer_size) {
+    if(sizeof(printers) == 0) {
+        return NULL;
+    }
 
+    for(int i = 0; i < MAX_PRINTERS; i++) {
+        if(eligible_printers != NULL) {
+            for(int j = 0; j < printer_size; i++) {
+                if(strcmp(printers[i].name, eligible_printers[j]) == 0 && printers[i].status == PRINTER_IDLE) {
+                    return &printers[i];
+                }
+            }
+        }else{
+            if(printers[i].status == PRINTER_IDLE) {
+                return &printers[i];
+            }
+        }
+    }
+
+    return NULL;
 }
 
 int run_cli(FILE *in, FILE *out)
 {
-	int uid = 0;
+	static int uid = 0;
+    static int jid = 0;
     while(1) {
     	char* input = sf_readline("imp>");
     	int argc = num_of_args(input);
@@ -155,18 +172,49 @@ int run_cli(FILE *in, FILE *out)
 
     	}else if (strncmp(input, "print", 5) == 0) {
 
-            if (argc != 1) {
-                error_message(argc, 1, "print");
+            if (argc == 0) {
+                error_message(argc, 0, "print");
                 sf_cmd_error("argc count");
                 continue;
+            }else if (jid > MAX_JOBS) {
+                printf("Exceeded maximum amount of jobs.\n");
+                sf_cmd_error("MAX_JOBS EXCEEDED");
+                continue;
             }
-            char *job_name = arguments[1];
-            FILE_TYPE *file_type = get_file_type(job_name);
+
+            char *file_name = arguments[1];
+            FILE_TYPE *file_type = get_file_type(file_name);
+            printf("HELLO %p\n", file_type);
             if (file_type == NULL) {
                 sf_cmd_error("print (file type)");
                 continue;
             }
-            find_available_printer(job_name, file_type);
+            // char **eligible_printers = NULL;
+
+            // if (argc >= 2) {
+            //     eligible_printers = arguments + 2;
+            // }
+
+            // PRINTER *printer_res = find_available_printer(file_name, file_type, eligible_printers, argc);
+            // if (printer_res == NULL) {
+            //     sf_cmd_error("print");
+            //     continue;
+            // }
+
+            JOB new_job = {.id = jid, .creation = "", .status = JOB_CREATED, .eligible = "ffffffff", .file_name = file_name, .file_type = file_type};
+            sf_job_created(new_job.id, new_job.file_name, new_job.file_type->name);
+            jobs[jid] = new_job;
+            JOB current_job = jobs[jid];
+            printf("JOB[%d]: type=%s, creation(%s), status(%s)=%s, eligible=%s, file=%s\n",
+                    current_job.id,
+                    current_job.file_type->name,
+                    current_job.creation,
+                    current_job.creation,
+                    job_status_names[current_job.status],
+                    current_job.eligible,
+                    current_job.file_name);
+            jid++;
+
             sf_cmd_ok();
         }else if(strncmp(input, "conversion", 10) == 0) {
     		if (argc != 3) {
@@ -182,6 +230,20 @@ int run_cli(FILE *in, FILE *out)
     			sf_cmd_error("argc count");
     			continue;
     		}
+            for(int i = 0; i < MAX_JOBS; i++) {
+                if(jobs[i].file_name == NULL) {
+                    break;
+                }
+                JOB current_job = jobs[i];
+                printf("JOB[%d]: type=%s, creation(%s), status(%s)=%s, eligible=%s, file=%s\n",
+                    current_job.id,
+                    current_job.file_type->name,
+                    current_job.creation,
+                    current_job.creation,
+                    job_status_names[current_job.status],
+                    current_job.eligible,
+                    current_job.file_name);
+            }
     		sf_cmd_ok();
 
     	}else if(strncmp(input, "enable", 6) == 0) {
