@@ -73,8 +73,15 @@ PRINTER *find_available_printer(char *file_name, FILE_TYPE *file_type, char **el
             }
         }
     }
-
     return NULL;
+}
+
+JOB *scan_jobs() {
+    for(int i = 0; i < MAX_JOBS; i++) {
+        if (jobs[i].status == JOB_CREATED) {
+
+        }
+    }
 }
 
 int run_cli(FILE *in, FILE *out)
@@ -222,6 +229,7 @@ int run_cli(FILE *in, FILE *out)
     			sf_cmd_error("argc count");
     			continue;
     		}
+
     		sf_cmd_ok();
 
     	}else if(strncmp(input, "jobs", 4) == 0) {
@@ -278,6 +286,7 @@ int run_cli(FILE *in, FILE *out)
     			}else if (printers[i].name == arguments[1]) {
     				printers[i].status = PRINTER_DISABLED;
     				sf_printer_status(printers[i].name, PRINTER_DISABLED);
+                    scan_jobs();
     				sf_cmd_ok();
     				break;
     			}
