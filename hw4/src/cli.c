@@ -76,12 +76,13 @@ PRINTER *find_available_printer(char *file_name, FILE_TYPE *file_type, char **el
     return NULL;
 }
 
-JOB *scan_jobs() {
+void *scan_jobs() {
     for(int i = 0; i < MAX_JOBS; i++) {
         if (jobs[i].status == JOB_CREATED) {
-
+            return NULL;
         }
     }
+    return NULL;
 }
 
 int run_cli(FILE *in, FILE *out)
@@ -229,7 +230,9 @@ int run_cli(FILE *in, FILE *out)
     			sf_cmd_error("argc count");
     			continue;
     		}
-
+            char **conv_name = &arguments[3];
+            printf("HELLO %s, %s, %s\n", *conv_name, arguments[1], arguments[2]);
+            define_conversion(arguments[1], arguments[2], conv_name);
     		sf_cmd_ok();
 
     	}else if(strncmp(input, "jobs", 4) == 0) {
