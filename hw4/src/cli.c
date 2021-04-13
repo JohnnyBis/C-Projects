@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "imprimer.h"
 #include "conversions.h"
@@ -55,7 +56,7 @@ FILE_TYPE *get_file_type(char *file_name) {
     return NULL;
 }
 
-PRINTER *find_available_printer(char *file_name, FILE_TYPE *file_type, char **eligible_printers, int printer_size) {
+PRINTER *find_available_printer(char *from_type, char **eligible_printers, int printer_size) {
     if(sizeof(printers) == 0) {
         return NULL;
     }
@@ -63,8 +64,11 @@ PRINTER *find_available_printer(char *file_name, FILE_TYPE *file_type, char **el
     for(int i = 0; i < MAX_PRINTERS; i++) {
         if(eligible_printers != NULL) {
             for(int j = 0; j < printer_size; i++) {
-                if(strcmp(printers[i].name, eligible_printers[j]) == 0 && printers[i].status == PRINTER_IDLE) {
-                    return &printers[i];
+                CONVERSION **res = find_conversion_path(from_type, printers[i].file_type->name);
+                if(res[0] != NULL) {
+                    if(strcmp(printers[i].name, eligible_printers[j]) == 0 && printers[i].status == PRINTER_IDLE) {
+                        return &printers[i];
+                    }
                 }
             }
         }else{
@@ -76,9 +80,67 @@ PRINTER *find_available_printer(char *file_name, FILE_TYPE *file_type, char **el
     return NULL;
 }
 
-void *scan_jobs() {
+void run_job(PRINTER printer, JOB job, char *from, char *to) {
+    int fd_current[2];
+    int fd_next[2];
+    //2 pipes:
+    //1 for current conversion.
+    //2nd for next conv.
+
+    if(pipe(fd_current) == -1 || pipe(fd_next) == -1) {
+        printf("Pipe error.");
+        exit(-1);
+    }
+
+    pid_t P;
+    P = fork();
+    if (P == 0) {
+        //Master process.
+        pid_t child = fork();
+        if(child == 0) {
+            //Child process.
+            CONVERSION **res = find_conversion_path(from, to);
+            //P1 = P2
+            //Use P2 for next conv program.
+            if(res[0] == NULL) {
+                //Same type --> no conversion needed.
+                exit(0);
+            }
+
+            int i = 0;
+            while(res[i] != NULL) {
+                pid_t conversion_p = fork(); //Create one process for each conversion path.
+                if (conversion_p == 0) {
+                    CONVERSION conversion = *res[i];
+                    int status = execvp(conversion.cmd_and_args[0], conversion.cmd_and_args);
+                    if(status != 0) {
+                        exit(-1);
+                    }
+                }
+                i++;
+            }
+            //for loop
+            // for first exc
+            // --> then pass to the printer = using imp_
+            //  dup2 to pass output from standard out to file descripor of printer. (imp)
+            //  output of the file conversion --> pass to file descriptor (imp)
+            //wait for child proccessses to exit and
+        }else{
+            //Parent process.
+        }
+    }else{
+        //Parent process.
+    }
+}
+
+void *scan_jobs(char *from, char *to) {
     for(int i = 0; i < MAX_JOBS; i++) {
         if (jobs[i].status == JOB_CREATED) {
+            CONVERSION **list_of_conversions = find_conversion_path(from, to);
+            int i = 0;
+            while(list_of_conversions[i] != NULL) {
+                return NULL;
+            }
             return NULL;
         }
     }
@@ -175,7 +237,7 @@ int run_cli(FILE *in, FILE *out)
     		sf_printer_defined(new_printer.name, new_printer.file_type->name);
     		printers[uid] = new_printer;
     		uid++;
-    		printf("PRINTER: id=%d, name=%s, type=%s, status=%s\n", new_printer.id, new_printer.name, printer_status_names[new_printer.status], new_printer.file_type->name);
+    		printf("PRINTER: id=%d, name=%s, type=%s, status=%s\n", new_printer.id, new_printer.name, new_printer.file_type->name, printer_status_names[new_printer.status]);
     		sf_cmd_ok();
 
     	}else if (strncmp(input, "print", 5) == 0) {
@@ -192,27 +254,22 @@ int run_cli(FILE *in, FILE *out)
 
             char *file_name = arguments[1];
             FILE_TYPE *file_type = get_file_type(file_name);
-            printf("HELLO %p\n", file_type);
             if (file_type == NULL) {
                 sf_cmd_error("print (file type)");
                 continue;
             }
-            // char **eligible_printers = NULL;
+            char **eligible_printers = NULL;
 
-            // if (argc >= 2) {
-            //     eligible_printers = arguments + 2;
-            // }
-
-            // PRINTER *printer_res = find_available_printer(file_name, file_type, eligible_printers, argc);
-            // if (printer_res == NULL) {
-            //     sf_cmd_error("print");
-            //     continue;
-            // }
+            if (argc >= 2) {
+                eligible_printers = arguments + 2;
+            }
 
             JOB new_job = {.id = jid, .creation = "", .status = JOB_CREATED, .eligible = "ffffffff", .file_name = file_name, .file_type = file_type};
             sf_job_created(new_job.id, new_job.file_name, new_job.file_type->name);
             jobs[jid] = new_job;
             JOB current_job = jobs[jid];
+            jid++;
+
             printf("JOB[%d]: type=%s, creation(%s), status(%s)=%s, eligible=%s, file=%s\n",
                     current_job.id,
                     current_job.file_type->name,
@@ -221,18 +278,32 @@ int run_cli(FILE *in, FILE *out)
                     job_status_names[current_job.status],
                     current_job.eligible,
                     current_job.file_name);
-            jid++;
+
+            PRINTER *printer_res = find_available_printer(current_job.file_type->name, eligible_printers, argc);
+
+            if (printer_res != NULL) {
+                run_job(*printer_res, current_job, current_job.file_type->name, printer_res->file_type->name);
+            }
 
             sf_cmd_ok();
         }else if(strncmp(input, "conversion", 10) == 0) {
-    		if (argc != 3) {
+    		if (argc < 3) {
     			error_message(argc, 3, "conversions");
     			sf_cmd_error("argc count");
     			continue;
     		}
-            char **conv_name = &arguments[3];
-            printf("HELLO %s, %s, %s\n", *conv_name, arguments[1], arguments[2]);
+            int counter = argc - 2;
+            char *conv_name[counter];
+            conv_name[counter] = '\0';
+            *conv_name = arguments[3];
+
+            //Copies command and arguments to conv_name pointer array.
+            for(int i = 0 ; i < counter; i++) {
+                conv_name[i] = arguments[3+i];
+            }
+
             define_conversion(arguments[1], arguments[2], conv_name);
+
     		sf_cmd_ok();
 
     	}else if(strncmp(input, "jobs", 4) == 0) {
@@ -264,17 +335,24 @@ int run_cli(FILE *in, FILE *out)
     			continue;
     		}
 
+            int printerFound = 0;
     		for(int i=0; i < MAX_PRINTERS; i++) {
     			if(printers[i].name == NULL) {
     				break;
-    			}else if (printers[i].name == arguments[1]) {
+    			}else if (strcmp(printers[i].name, arguments[1]) == 0) {
     				printers[i].status = PRINTER_IDLE;
     				sf_printer_status(printers[i].name, PRINTER_IDLE);
-    				sf_cmd_ok();
-    				break;
+                    //scan_jobs();
+                    printerFound = 1;
+                    break;
     			}
     		}
-    		sf_cmd_error("enable (no printer)");
+
+            if(!printerFound) {
+                sf_cmd_error("enable (no printer)");
+            }else{
+                sf_cmd_ok();
+            }
 
     	}else if(strncmp(input, "disable", 7) == 0) {
     		if (argc != 1) {
@@ -289,7 +367,7 @@ int run_cli(FILE *in, FILE *out)
     			}else if (printers[i].name == arguments[1]) {
     				printers[i].status = PRINTER_DISABLED;
     				sf_printer_status(printers[i].name, PRINTER_DISABLED);
-                    scan_jobs();
+                    // scan_jobs();
     				sf_cmd_ok();
     				break;
     			}
