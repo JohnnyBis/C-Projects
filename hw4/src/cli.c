@@ -7,10 +7,15 @@
 #include <ctype.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/wait.h>
 
 #include "imprimer.h"
 #include "conversions.h"
 #include "sf_readline.h"
+
+#define READ 0
+#define WRITE 1
 
 typedef struct printer {
 	int id;
@@ -72,64 +77,88 @@ PRINTER *find_available_printer(char *from_type, char **eligible_printers, int p
                 }
             }
         }else{
-            if(printers[i].status == PRINTER_IDLE) {
-                return &printers[i];
-            }
+            return NULL;
         }
     }
     return NULL;
 }
 
+int new_process_pipeline(int input, int output, CONVERSION current_conversion) {
+    pid_t pid_child = fork();
+
+    if (pid_child == 0){
+        if (input != 0){
+            dup2(input, STDIN_FILENO);
+            close(input);
+        }
+
+        if (output != 1){
+            dup2 (output, STDOUT_FILENO);
+            close (output);
+        }
+
+        return execvp(current_conversion.cmd_and_args[0], current_conversion.cmd_and_args);
+    }
+
+    return pid_child;
+}
+
 void run_job(PRINTER printer, JOB job, char *from, char *to) {
     int fd_current[2];
     int fd_next[2];
+    int current_input_fd;
     //2 pipes:
     //1 for current conversion.
     //2nd for next conv.
-
-    if(pipe(fd_current) == -1 || pipe(fd_next) == -1) {
-        printf("Pipe error.");
-        exit(-1);
-    }
 
     pid_t P;
     P = fork();
     if (P == 0) {
         //Master process.
-        pid_t child = fork();
-        if(child == 0) {
-            //Child process.
-            CONVERSION **res = find_conversion_path(from, to);
-            //P1 = P2
-            //Use P2 for next conv program.
-            if(res[0] == NULL) {
-                //Same type --> no conversion needed.
-                exit(0);
-            }
+        //Set pgid of master process.
+        setpgid(P, 0);
 
-            int i = 0;
-            while(res[i] != NULL) {
-                pid_t conversion_p = fork(); //Create one process for each conversion path.
-                if (conversion_p == 0) {
-                    CONVERSION conversion = *res[i];
-                    int status = execvp(conversion.cmd_and_args[0], conversion.cmd_and_args);
-                    if(status != 0) {
-                        exit(-1);
-                    }
-                }
-                i++;
-            }
-            //for loop
-            // for first exc
-            // --> then pass to the printer = using imp_
-            //  dup2 to pass output from standard out to file descripor of printer. (imp)
-            //  output of the file conversion --> pass to file descriptor (imp)
-            //wait for child proccessses to exit and
-        }else{
-            //Parent process.
+        CONVERSION **res = find_conversion_path(from, to);
+        //P1 = P2
+        //Use P2 for next conv program.
+
+        if(res[0] == NULL) {
+            //Same type --> no conversion needed.
+            exit(0);
         }
-    }else{
-        //Parent process.
+
+        int read_printer_fd = open(job.file_name, O_RDONLY); //Read file descriptor
+        dup2(read_printer_fd, STDIN_FILENO); //Redirect STDIN to read_printer_fd
+        current_input_fd = read_printer_fd;
+        close(read_printer_fd);
+
+        int i = 0;
+        while(res[i] != NULL) {
+            i++;
+        }
+
+        int size = i + 1;
+
+        for(int i = 0; i < size - 1; i++) {
+
+            if(pipe(fd_current) == -1 || pipe(fd_next) == -1) {
+                printf("Pipe error.");
+                exit(1);
+            }
+            CONVERSION conversion = *res[i];
+            new_process_pipeline(current_input_fd, fd_current[WRITE], conversion);
+            close(fd_current[WRITE]);
+            current_input_fd = fd_current[READ];
+        }
+
+        if(current_input_fd != 0) {
+            dup2(current_input_fd, STDIN_FILENO);
+        }
+        CONVERSION last_conv = *res[size - 1];
+        execvp(last_conv.cmd_and_args[0], last_conv.cmd_and_args);
+    }else if (P > 0){
+        //Main Parent process.
+
     }
 }
 
@@ -242,8 +271,8 @@ int run_cli(FILE *in, FILE *out)
 
     	}else if (strncmp(input, "print", 5) == 0) {
 
-            if (argc == 0) {
-                error_message(argc, 0, "print");
+            if (argc <= 2) {
+                error_message(argc, 2, "print");
                 sf_cmd_error("argc count");
                 continue;
             }else if (jid > MAX_JOBS) {
@@ -258,11 +287,7 @@ int run_cli(FILE *in, FILE *out)
                 sf_cmd_error("print (file type)");
                 continue;
             }
-            char **eligible_printers = NULL;
-
-            if (argc >= 2) {
-                eligible_printers = arguments + 2;
-            }
+            char **eligible_printers = arguments + 2;
 
             JOB new_job = {.id = jid, .creation = "", .status = JOB_CREATED, .eligible = "ffffffff", .file_name = file_name, .file_type = file_type};
             sf_job_created(new_job.id, new_job.file_name, new_job.file_type->name);
