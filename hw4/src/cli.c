@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 #include "imprimer.h"
 #include "conversions.h"
@@ -16,6 +17,10 @@
 
 #define READ 0
 #define WRITE 1
+volatile sig_atomic_t signal_status = 0;
+volatile sig_atomic_t job_index = -1;
+volatile sig_atomic_t wait_status = 0;
+
 
 typedef struct printer {
 	int id;
@@ -61,6 +66,16 @@ FILE_TYPE *get_file_type(char *file_name) {
     return NULL;
 }
 
+void sigchld_handler(int sig) {
+    pid_t p;
+    int status;
+
+    while ((p = waitpid(-1, &status, WNOHANG)) > 0);
+    signal_status = status;
+    wait_status = p;
+    return;
+}
+
 PRINTER *find_available_printer(char *from_type, char **eligible_printers, int printer_size) {
     if(sizeof(printers) == 0) {
         return NULL;
@@ -93,8 +108,8 @@ int new_process_pipeline(int input, int output, CONVERSION current_conversion) {
         }
 
         if (output != 1){
-            dup2 (output, STDOUT_FILENO);
-            close (output);
+            dup2(output, STDOUT_FILENO);
+            close(output);
         }
 
         return execvp(current_conversion.cmd_and_args[0], current_conversion.cmd_and_args);
@@ -138,7 +153,7 @@ void run_job(PRINTER printer, JOB job, char *from, char *to) {
         }
 
         int size = i + 1;
-
+        //DONT FORGET SF FUNCTIONS.
         for(int i = 0; i < size - 1; i++) {
 
             if(pipe(fd_current) == -1 || pipe(fd_next) == -1) {
@@ -156,9 +171,29 @@ void run_job(PRINTER printer, JOB job, char *from, char *to) {
         }
         CONVERSION last_conv = *res[size - 1];
         execvp(last_conv.cmd_and_args[0], last_conv.cmd_and_args);
+        signal(SIGCHLD, sigchld_handler);
+        if(wait_status == -1) {
+            exit(1);
+        }
+        if(WIFSTOPPED(signal_status) == 1 && signal_status != -1) {
+            sf_job_status(job.id, JOB_PAUSED);
+            job.status = JOB_PAUSED;
+            signal_status = -1;
+        }else if(WIFCONTINUED(signal_status) == 1 && signal_status != -1) {
+            sf_job_status(job.id, JOB_RUNNING);
+            job.status = JOB_RUNNING;
+        }
+        exit(0);
     }else if (P > 0){
         //Main Parent process.
-
+        signal(SIGCHLD, sigchld_handler);
+        if(wait_status != 0) {
+            sf_job_status(job.id, JOB_ABORTED);
+            job.status = JOB_ABORTED;
+            exit(1);
+        }
+        sf_job_status(job.id, JOB_FINISHED);
+        job.status = JOB_FINISHED;
     }
 }
 
