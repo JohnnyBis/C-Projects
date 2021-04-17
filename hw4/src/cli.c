@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <time.h>
 
 #include "imprimer.h"
 #include "conversions.h"
@@ -18,7 +19,10 @@
 #define READ 0
 #define WRITE 1
 volatile sig_atomic_t signal_status = 0;
+volatile sig_atomic_t job_id = -1;
 static int CURR_P_SIZE = 0;
+
+void job_listener();
 
 typedef struct printer {
     int id;
@@ -38,6 +42,8 @@ typedef struct job {
     int pgid;
     char **eligible_printers;
     int total_eligible;
+    time_t created_at;
+    time_t updated_at;
 } JOB;
 
 PRINTER printers[MAX_PRINTERS];
@@ -120,7 +126,6 @@ int new_process_pipeline(int input, int output, CONVERSION current_conversion) {
     return pid_child;
 }
 
-
 void run_job(int pid, int jid, char *from, char *to) {
     int fd_current[2];
     int current_input_fd;
@@ -157,19 +162,16 @@ void run_job(int pid, int jid, char *from, char *to) {
             exit(1);
         }
 
-        // printf("HOOO\n");
         if(res[0] == NULL) {
             //Same type --> no conversion needed.
             char *no_conversion[] = {"bin/cat"};
             execvp(jobs[jid].file_name, no_conversion);
             exit(0);
         }else{
-            // printf("HELLO-\n");
             dup2(read_printer_fd, STDIN_FILENO); //Redirect STDIN to read_printer_fd
             current_input_fd = read_printer_fd;
             close(read_printer_fd);
 
-            //DONT FORGET SF FUNCTIONS.
             for(int i = 0; i < size - 1; i++) {
                 if(pipe(fd_current) == -1) {
                     exit(1);
@@ -183,6 +185,8 @@ void run_job(int pid, int jid, char *from, char *to) {
             if(current_input_fd != 0) {
                 dup2(current_input_fd, STDIN_FILENO);
             }
+
+            dup2(output_printer_fd, STDOUT_FILENO);
 
             CONVERSION last_conv = *res[size - 1];
             execvp(last_conv.cmd_and_args[0], last_conv.cmd_and_args);
@@ -228,13 +232,7 @@ void run_job(int pid, int jid, char *from, char *to) {
         jobs[jid].pgid = P;
         printers[pid].pgid = P;
         printers[pid].status = PRINTER_BUSY;
-        // if(signal_status != 0) {
-        //     sf_job_aborted(job->id, JOB_ABORTED);
-        //     job->status = JOB_ABORTED;
-        // } else {
-        //     sf_job_finished(job->id, JOB_FINISHED);
-        //     job->status = JOB_FINISHED;
-        // }
+        job_listener();
     }
 }
 
@@ -243,7 +241,8 @@ void job_listener() {
         if(jobs[i].file_name != NULL && jobs[i].status == JOB_CREATED) {
             char *from = jobs[i].file_type->name;
             int pid = find_available_printer(from, jobs[i].eligible_printers, CURR_P_SIZE, jobs[i].total_eligible);
-            if(pid != -1 && pid > MAX_PRINTERS) {
+
+            if(pid != -1 && pid <= MAX_PRINTERS) {
                 char *to = printers[pid].file_type->name;
                 run_job(pid, i, from, to);
             }
@@ -266,15 +265,16 @@ void *scan_jobs(char *from, char *to) {
 }
 
 void signal_callback(){
+    clock_t start_time = clock();
     if(signal_status == 1) {
         int status;
         pid_t pid;
+        job_id = -1;
         while((pid = waitpid(-1, &status, 0))) {
             if(pid == -1) {
                 break;
             }
             int counter = 0;
-            int job_id = -1;
             while(counter < MAX_JOBS) {
                 if(jobs[counter].pgid == pid) {
                     job_id = counter;
@@ -302,12 +302,19 @@ void signal_callback(){
             }
 
             if(WIFSIGNALED(status) == 1) {
+                // start_time = clock();
+
                 sf_job_status(job_id, JOB_ABORTED);
                 sf_job_aborted(job_id, status);
+                jobs[job_id].updated_at = time(NULL);
                 jobs[job_id].status = JOB_ABORTED;
             }else if (WIFEXITED(status) == 1) {
+                //start_time = clock();
+
                 sf_job_status(job_id, JOB_FINISHED);
                 sf_job_finished(job_id, status);
+
+                jobs[job_id].updated_at = time(NULL);
                 jobs[job_id].status = JOB_FINISHED;
             }
 
@@ -316,7 +323,15 @@ void signal_callback(){
             break;
 
         }
+    }else {
+        if (jobs[job_id].status == JOB_FINISHED || jobs[job_id].status == JOB_ABORTED) {
+            while((int) ((clock() - start_time)/1000000) < 10);
+            jobs[job_id].updated_at = time(NULL);
+            sf_job_deleted(job_id);
+            job_id = -1;
+        }
     }
+    job_listener();
     signal_status = 0;
 }
 
@@ -341,8 +356,9 @@ int run_cli(FILE *in, FILE *out)
         }
 
         if(out != stdout) {
-            //TODO
+            continue;
         }
+
         if (strcmp(input, "quit") == 0) {
             if (argc != 0) {
                 error_message(argc, 0, "quit");
@@ -412,8 +428,10 @@ int run_cli(FILE *in, FILE *out)
             PRINTER new_printer = {.id = CURR_P_SIZE, .name = printer_name, .status = PRINTER_DISABLED, .file_type = file_res};
             sf_printer_defined(new_printer.name, new_printer.file_type->name);
             printers[CURR_P_SIZE] = new_printer;
-            CURR_P_SIZE++;
             printf("PRINTER: id=%d, name=%s, type=%s, status=%s\n", new_printer.id, new_printer.name, new_printer.file_type->name, printer_status_names[new_printer.status]);
+            CURR_P_SIZE++;
+
+            job_listener();
             sf_cmd_ok();
 
         }else if (strncmp(input, "print", 5) == 0) {
@@ -445,24 +463,34 @@ int run_cli(FILE *in, FILE *out)
                     .id = jid, .creation = "", .status = JOB_CREATED, .eligible = "ffffffff",
                     .file_name = file_name, .file_type = file_type,
                     .eligible_printers = eligible_printers,
-                    .total_eligible = (argc - 1)
+                    .total_eligible = (argc - 1),
+                    .created_at = time(NULL),
+                    .updated_at = time(NULL)
             };
 
             sf_job_created(new_job.id, new_job.file_name, new_job.file_type->name);
             jobs[jid] = new_job;
             JOB current_job = jobs[jid];
 
-            int printer_id = find_available_printer(current_job.file_type->name, current_job.eligible_printers, CURR_P_SIZE, current_job.total_eligible);
 
-            if (printer_id != -1) {
-                run_job(printer_id, jid, current_job.file_type->name, printers[printer_id].file_type->name);
-            }
+            job_listener();
+
+            // int printer_id = find_available_printer(current_job.file_type->name, current_job.eligible_printers, CURR_P_SIZE, current_job.total_eligible);
+
+            // if (printer_id != -1) {
+            //     run_job(printer_id, jid, current_job.file_type->name, printers[printer_id].file_type->name);
+            // }
+            char created_at_buffer[30];
+            char updated_at_buffer[30];
+
+            strftime(created_at_buffer, 26, "%Y-%m-%d %H:%M:%S", localtime(&current_job.created_at));
+            strftime(updated_at_buffer, 26, "%Y-%m-%d %H:%M:%S", localtime(&current_job.updated_at));
 
             printf("JOB[%d]: type=%s, creation(%s), status(%s)=%s, eligible=%s, file=%s\n",
                     current_job.id,
                     current_job.file_type->name,
-                    current_job.creation,
-                    current_job.creation,
+                    created_at_buffer,
+                    updated_at_buffer,
                     job_status_names[current_job.status],
                     current_job.eligible,
                     current_job.file_name);
@@ -534,6 +562,7 @@ int run_cli(FILE *in, FILE *out)
             if(!printerFound) {
                 sf_cmd_error("printer not found");
             }else{
+                job_listener();
                 sf_cmd_ok();
             }
 
@@ -547,7 +576,7 @@ int run_cli(FILE *in, FILE *out)
             for(int i=0; i < MAX_PRINTERS; i++) {
                 if(printers[i].name == NULL) {
                     break;
-                }else if (printers[i].name == arguments[1]) {
+                }else if (strcmp(printers[i].name, arguments[1])) {
                     printers[i].status = PRINTER_DISABLED;
                     sf_printer_status(printers[i].name, PRINTER_DISABLED);
                     // scan_jobs();
@@ -555,28 +584,66 @@ int run_cli(FILE *in, FILE *out)
                     break;
                 }
             }
-            sf_cmd_error("enable (no printer)");
+            sf_cmd_error("Printer not found");
         }else if(strncmp(input, "resume", 6) == 0) {
+
+            if (argc != 0) {
+                error_message(argc, 1, "resume");
+                sf_cmd_error("argc count");
+                continue;
+            }else if(isdigit(*arguments[1]) == 0) {
+                printf("Only input the job number.\n");
+                sf_cmd_error("argument error type");
+                continue;
+            }
+
             int i = 0;
-            while(jobs[i].id != *arguments[1]) {
+            while(jobs[i].id != (int) *arguments[1]) {
                 i++;
             }
 
             killpg(jobs[i].pgid, SIGCONT);
+            sf_cmd_ok();
         }else if(strncmp(input, "pause", 6) == 0) {
+            if (argc != 0) {
+                error_message(argc, 1, "pause");
+                sf_cmd_error("argc count");
+                continue;
+            }else if(isdigit(*arguments[1]) == 0) {
+                printf("Only input the job number.\n");
+                sf_cmd_error("argument error type");
+                continue;
+            }
+
             int i = 0;
-            while(jobs[i].id != *arguments[1]) {
+            while(jobs[i].id != (int) *arguments[1]) {
                 i++;
             }
 
             killpg(jobs[i].pgid, SIGSTOP);
+            sf_cmd_ok();
 
         }else if(strncmp(input, "cancel", 6) == 0) {
+
+            if (argc != 0) {
+                error_message(argc, 1, "cancel");
+                sf_cmd_error("argc count");
+                continue;
+            }else if(isdigit(*arguments[1]) == 0) {
+                printf("Only input the job number.\n");
+                sf_cmd_error("argument error type");
+                continue;
+            }
+
             int i = 0;
-            while(jobs[i].id != *arguments[1]) {
+            while(jobs[i].id != (int) *arguments[1]) {
                 i++;
             }
             killpg(jobs[i].pgid, SIGTERM);
+            sf_cmd_ok();
+        }else{
+            printf("Unrecognized command %s\n", arguments[0]);
+            sf_cmd_error("CMD_ERROR [unrecognized command]");
         }
 
     }
