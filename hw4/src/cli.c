@@ -134,8 +134,6 @@ void run_job(int pid, int jid, char *from, char *to) {
 
     signal(SIGCHLD, sigchld_main_handler);
 
-
-    int output_printer_fd = imp_connect_to_printer(printers[pid].name, printers[pid].file_type->name, 0);
     CONVERSION **res = find_conversion_path(from, to);
 
     int i = 0;
@@ -156,6 +154,8 @@ void run_job(int pid, int jid, char *from, char *to) {
         //Master process.
         //Set pgid of master process.
         setpgid(0, 0);
+
+        int output_printer_fd = imp_connect_to_printer(printers[pid].name, printers[pid].file_type->name, 0);
 
         int read_printer_fd = open(jobs[jid].file_name, O_RDONLY); //Read file descriptor
         if(output_printer_fd == -1){
@@ -232,7 +232,7 @@ void run_job(int pid, int jid, char *from, char *to) {
         jobs[jid].pgid = P;
         printers[pid].pgid = P;
         printers[pid].status = PRINTER_BUSY;
-        job_listener();
+
     }
 }
 
@@ -265,7 +265,7 @@ void *scan_jobs(char *from, char *to) {
 }
 
 void signal_callback(){
-    clock_t start_time = clock();
+    // clock_t start_time = clock();
     if(signal_status == 1) {
         int status;
         pid_t pid;
@@ -324,12 +324,12 @@ void signal_callback(){
 
         }
     }else {
-        if (jobs[job_id].status == JOB_FINISHED || jobs[job_id].status == JOB_ABORTED) {
-            while((int) ((clock() - start_time)/1000000) < 10);
-            jobs[job_id].updated_at = time(NULL);
-            sf_job_deleted(job_id);
-            job_id = -1;
-        }
+        // if (jobs[job_id].status == JOB_FINISHED || jobs[job_id].status == JOB_ABORTED) {
+        //     while((int) ((clock() - start_time)/1000000) < 10);
+        //     jobs[job_id].updated_at = time(NULL);
+        //     sf_job_deleted(job_id);
+        //     job_id = -1;
+        // }
     }
     job_listener();
     signal_status = 0;
@@ -528,11 +528,16 @@ int run_cli(FILE *in, FILE *out)
                     break;
                 }
                 JOB current_job = jobs[i];
+                char created_at_buffer[30];
+                char updated_at_buffer[30];
+
+                strftime(created_at_buffer, 26, "%Y-%m-%d %H:%M:%S", localtime(&current_job.created_at));
+                strftime(updated_at_buffer, 26, "%Y-%m-%d %H:%M:%S", localtime(&current_job.updated_at));
                 printf("JOB[%d]: type=%s, creation(%s), status(%s)=%s, eligible=%s, file=%s\n",
                     current_job.id,
                     current_job.file_type->name,
-                    current_job.creation,
-                    current_job.creation,
+                    created_at_buffer,
+                    updated_at_buffer,
                     job_status_names[current_job.status],
                     current_job.eligible,
                     current_job.file_name);
@@ -641,10 +646,11 @@ int run_cli(FILE *in, FILE *out)
             }
             killpg(jobs[i].pgid, SIGTERM);
             sf_cmd_ok();
-        }else{
-            printf("Unrecognized command %s\n", arguments[0]);
-            sf_cmd_error("CMD_ERROR [unrecognized command]");
         }
+        // else{
+        //     printf("Unrecognized command %s\n", arguments[0]);
+        //     sf_cmd_error("CMD_ERROR [unrecognized command]");
+        // }
 
     }
     return 1;
