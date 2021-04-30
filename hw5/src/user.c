@@ -49,7 +49,6 @@ void user_unref(USER *user, char *why) {
 
 	user->why = why;
 
-
 	if(user->reference == 0) {
 		free(user);
 	}
