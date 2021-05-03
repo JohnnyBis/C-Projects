@@ -17,6 +17,8 @@ typedef struct client {
 	pthread_mutex_t lock;
 } CLIENT;
 
+//TODO: Add handle checker if it's already registered.
+
 CLIENT *client_create(CLIENT_REGISTRY *creg, int fd) {
 	CLIENT *client = malloc(sizeof(CLIENT));
 	if(client == NULL) {
@@ -40,8 +42,6 @@ CLIENT *client_create(CLIENT_REGISTRY *creg, int fd) {
 	client->mailbox = NULL;
 	client->user = NULL;
 	client->status = 0; //Logged out
-
-	//printf("CLIENT CREATE\n");
 
 	return client;
 }
@@ -147,7 +147,7 @@ int client_logout(CLIENT *client) {
 }
 
 USER *client_get_user(CLIENT *client, int no_ref) {
-	if(client == NULL) {
+	if(client == NULL || client->status == 0) { //If client null or not logged in.
 		return NULL;
 	}
 
