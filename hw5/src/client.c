@@ -1,8 +1,11 @@
 #include "client_registry.h"
+#include "user_registry.h"
+#include "globals.h"
 #include "client.h"
 #include "string.h"
 #include <pthread.h>
 #include <time.h>
+#include <unistd.h>
 
 typedef struct client {
 	USER *user;
@@ -38,7 +41,7 @@ CLIENT *client_create(CLIENT_REGISTRY *creg, int fd) {
 	client->user = NULL;
 	client->status = 0; //Logged out
 
-	printf("CLIENT CREATE\n");
+	//printf("CLIENT CREATE\n");
 
 	return client;
 }
@@ -52,7 +55,7 @@ CLIENT *client_ref(CLIENT *client, char *why) {
 	if(pthread_mutex_lock(&client->lock) < 0) {
 		return NULL;
 	}
-	printf("TOTAL REF: %d\n", client->reference);
+	//printf("TOTAL REF: %d\n", client->reference);
 
 	client->reference += 1;
 	client->why = why;
@@ -61,7 +64,7 @@ CLIENT *client_ref(CLIENT *client, char *why) {
 		return NULL;
 	}
 
-	printf("CLIENT REF %s\n", user_get_handle(client->user));
+	//printf("CLIENT REF %s\n", user_get_handle(client->user));
 
 	return client;
 }
@@ -74,19 +77,19 @@ void client_unref(CLIENT *client, char *why) {
 	if(pthread_mutex_lock(&client->lock) < 0) {
 		return;
 	}
-	printf("TOTAL REF: %d\n", client->reference);
+	//printf("TOTAL REF: %d\n", client->reference);
 	client->reference -= 1;
 	client->why = why;
 
 	if(client->reference == 0) {
-		printf("DONE\n");
+		//printf("DONE\n");
 		free(client);
 	}
 
 	if(pthread_mutex_unlock(&client->lock) < 0) {
 		return;
 	}
-	printf("UNREF %s\n", user_get_handle(client->user));
+
 }
 
 int client_login(CLIENT *client, char *handle) {
@@ -98,7 +101,7 @@ int client_login(CLIENT *client, char *handle) {
 		return -1;
 	}
 
-	USER *user = user_create(handle);
+	USER *user = ureg_register(user_registry, handle);
 	if(user == NULL) {
 		return -1;
 	}
@@ -128,10 +131,13 @@ int client_logout(CLIENT *client) {
 		return -1;
 	}
 
-	free(client->mailbox);
-	free(client->user);
-	client->mailbox = NULL;
+	mb_shutdown(client->mailbox);
+	mb_unref(client->mailbox, "Removing mailbox reference for logout.");
+	user_unref(client->user, "Removing user reference for logout.");
+
+	client->status = 0;
 	client->user = NULL;
+	client->mailbox = NULL;
 
 	if(pthread_mutex_unlock(&client->lock) < 0) {
 		return -1;
@@ -150,14 +156,14 @@ USER *client_get_user(CLIENT *client, int no_ref) {
 	}
 
 	if(no_ref == 0) {
-		client->reference += 1;
-		printf("TOTAL REF: %d\n", client->reference);
+		user_ref(client->user, "client_get_user called.");
+		//printf("TOTAL REF: %d\n", client->reference);
 	}
 
 	if(pthread_mutex_unlock(&client->lock) < 0) {
 		return NULL;
 	}
-	printf("GET USER %s\n", user_get_handle(client->user));
+	//printf("GET USER %s\n", user_get_handle(client->user));
 	return client->user;
 }
 
@@ -171,13 +177,13 @@ MAILBOX *client_get_mailbox(CLIENT *client, int no_ref) {
 	}
 
 	if(no_ref == 0) {
-		client->reference += 1;
+		mb_ref(client->mailbox, "New reference requested by get_mailbox function.");
 	}
 
 	if(pthread_mutex_unlock(&client->lock) < 0) {
 		return NULL;
 	}
-	printf("CLIENT MAIL\n");
+	//printf("CLIENT MAIL\n");
 	return client->mailbox;
 }
 
@@ -193,14 +199,34 @@ int client_send_packet(CLIENT *user, CHLA_PACKET_HEADER *pkt, void *data) {
 	if(pthread_mutex_lock(&user->lock) < 0) {
 		return -1;
 	}
-	int psp_result = proto_send_packet(user->fd, pkt, data);
-	printf("--%s\n", user_get_handle(user->user));
+	size_t headerSize = sizeof(CHLA_PACKET_HEADER);
+
+	if(write(user->fd, (void*) pkt, headerSize) < 0) {
+		return -1;
+	}
+
+	size_t payloadSize = htonl(pkt->payload_length);
+
+	if(payloadSize == 0) {
+		if(pthread_mutex_unlock(&user->lock) < 0) {
+			return -1;
+		}
+		return 0;
+	}
+
+	if(data != NULL && payloadSize != 0) {
+		if(write(user->fd, data, payloadSize) < 0) {
+			return -1;
+		}
+	}
+
+	//printf("--%s\n", user_get_handle(user->user));
 
 	if(pthread_mutex_unlock(&user->lock) < 0) {
 		return -1;
 	}
-	printf("SEND PACKET\n");
-	return psp_result;
+	//printf("SEND PACKET\n");
+	return 0;
 }
 
 int client_send_ack(CLIENT *client, uint32_t msgid, void *data, size_t datalen) {
@@ -214,9 +240,11 @@ int client_send_ack(CLIENT *client, uint32_t msgid, void *data, size_t datalen) 
 	cp_header->msgid = htonl(msgid);
 	cp_header->timestamp_sec = time(0);
 	cp_header->timestamp_nsec = time(0); //Change to nanoseconds.
-	printf("SEND ACK\n");
+	//printf("SEND ACK\n");
 
-	return client_send_packet(client, cp_header, data);
+	int csa_res = client_send_packet(client, cp_header, data);
+	free(cp_header);
+	return csa_res;
 }
 
 int client_send_nack(CLIENT *client, uint32_t msgid) {
@@ -230,5 +258,7 @@ int client_send_nack(CLIENT *client, uint32_t msgid) {
 	cp_header->timestamp_sec = time(0);
 	cp_header->timestamp_nsec = time(0); //Change to nanoseconds.
 
-	return client_send_packet(client, cp_header, NULL);
+	int csp_res = client_send_packet(client, cp_header, NULL);
+	free(cp_header);
+	return csp_res;
 }
