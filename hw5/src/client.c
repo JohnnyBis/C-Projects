@@ -168,7 +168,7 @@ USER *client_get_user(CLIENT *client, int no_ref) {
 }
 
 MAILBOX *client_get_mailbox(CLIENT *client, int no_ref) {
-	if(client == NULL) {
+	if(client == NULL || client->status == 0) {
 		return NULL;
 	}
 
