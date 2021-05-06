@@ -152,7 +152,6 @@ void mb_add_message(MAILBOX *mb, int msgid, MAILBOX *from, void *body, int lengt
 		mb->reference += 1;
 		//TODO: CHANGE TO MB_REF
 	}
-	debug("ADD \n");
 
 	MAILBOX_NODE *mailbox_node = malloc(sizeof(MAILBOX_NODE));
 	MAILBOX_ENTRY *entry = malloc(sizeof(MAILBOX_ENTRY));
@@ -163,9 +162,9 @@ void mb_add_message(MAILBOX *mb, int msgid, MAILBOX *from, void *body, int lengt
 
 	if(mb->count == 0) {
 		mb->front = mb->rear = mailbox_node;
-
+		mb->count += 1;
 		pthread_mutex_unlock(&mb->lock);
-
+		sem_post(&mb->sem);
 		return;
 	}
 
