@@ -55,7 +55,7 @@ Test(student_suite, 00_start_server, .timeout = 30) {
     wait(&ret);
     fprintf(stderr, "Server wait() returned = 0x%x\n", ret);
     if(WIFSIGNALED(ret)) {
-	fprintf(stderr, "Server terminated with signal %d\n", WTERMSIG(ret));	
+	fprintf(stderr, "Server terminated with signal %d\n", WTERMSIG(ret));
 	system("cat valgrind.out");
 	if(WTERMSIG(ret) == 9)
 	    cr_assert_fail("Server did not terminate after SIGHUP");

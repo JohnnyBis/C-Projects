@@ -55,7 +55,6 @@ CLIENT *client_ref(CLIENT *client, char *why) {
 	if(pthread_mutex_lock(&client->lock) < 0) {
 		return NULL;
 	}
-	//printf("TOTAL REF: %d\n", client->reference);
 
 	client->reference += 1;
 	client->why = why;
@@ -63,8 +62,6 @@ CLIENT *client_ref(CLIENT *client, char *why) {
 	if(pthread_mutex_unlock(&client->lock) < 0) {
 		return NULL;
 	}
-
-	//printf("CLIENT REF %s\n", user_get_handle(client->user));
 
 	return client;
 }
@@ -97,8 +94,17 @@ int client_login(CLIENT *client, char *handle) {
 		return -1;
 	}
 
-	if(pthread_mutex_lock(&client->lock) < 0) {
-		return -1;
+	//TODO: ADD A NEW LOCK
+
+	// if(pthread_mutex_lock(&client->lock) < 0) {
+	// 	return -1;
+	// }
+
+	CLIENT **clients = creg_all_clients(client_registry);
+	for(int i = 0; clients[i] != NULL; i++) {
+		if(clients[i]->status == 1 && strcmp(user_get_handle(clients[i]->user), handle) == 0) {
+			return -1;
+		}
 	}
 
 	USER *user = ureg_register(user_registry, handle);
@@ -115,9 +121,9 @@ int client_login(CLIENT *client, char *handle) {
 	client->user = user;
 	client->mailbox = mailbox;
 
-	if(pthread_mutex_unlock(&client->lock) < 0) {
-		return -1;
-	}
+	// if(pthread_mutex_unlock(&client->lock) < 0) {
+	// 	return -1;
+	// }
 
 	return 0;
 }
@@ -240,7 +246,6 @@ int client_send_ack(CLIENT *client, uint32_t msgid, void *data, size_t datalen) 
 	cp_header->msgid = htonl(msgid);
 	cp_header->timestamp_sec = time(0);
 	cp_header->timestamp_nsec = time(0); //Change to nanoseconds.
-	//printf("SEND ACK\n");
 
 	int csa_res = client_send_packet(client, cp_header, data);
 	free(cp_header);

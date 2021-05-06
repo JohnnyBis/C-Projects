@@ -2,6 +2,7 @@
 #include "string.h"
 #include <pthread.h>
 #include <semaphore.h>
+#include "debug.h"
 
 typedef struct mailbox_node MAILBOX_NODE;
 
@@ -39,12 +40,20 @@ MAILBOX *mb_init(char *handle) {
 		return NULL;
 	}
 
+	char *new_handle = malloc(sizeof(handle));
+	if(new_handle == NULL) {
+		return NULL;
+	}
+
+	strcpy(new_handle, handle);
+
 	if(pthread_mutex_init(&mailbox->lock, NULL) < 0) {
 		free(mailbox);
 		return NULL;
 	}
 
 	if(sem_init(&mailbox->sem, 0, 0) < 0) {
+		free(mailbox);
 		return NULL;
 	}
 
@@ -53,7 +62,7 @@ MAILBOX *mb_init(char *handle) {
 	mailbox->front = NULL;
 	mailbox->rear = NULL;
 	mailbox->why = why;
-	mailbox->handle = handle;
+	mailbox->handle = new_handle;
 
 	return mailbox;
 }
@@ -71,16 +80,16 @@ void mb_ref(MAILBOX *mb, char *why) {
 		return;
 	}
 
-	if(pthread_mutex_lock(&mb->lock) < 0) {
-		return;
-	}
-
+	// if(pthread_mutex_lock(&mb->lock) < 0) {
+	// 	return;
+	// }
+	debug("INCREASE\n");
 	mb->reference += 1;
 	mb->why = why;
 
-	if(pthread_mutex_unlock(&mb->lock) < 0) {
-		return;
-	}
+	// if(pthread_mutex_unlock(&mb->lock) < 0) {
+	// 	return;
+	// }
 }
 
 void mb_unref(MAILBOX *mb, char *why) {
@@ -88,9 +97,11 @@ void mb_unref(MAILBOX *mb, char *why) {
 		return;
 	}
 
-	if(pthread_mutex_lock(&mb->lock) < 0) {
-		return;
-	}
+	// if(pthread_mutex_lock(&mb->lock) < 0) {
+	// 	return;
+	// }
+	debug("DECREASE\n");
+	printf("INFO: %d\n", mb->reference);
 
 	mb->reference -= 1;
 
@@ -100,16 +111,15 @@ void mb_unref(MAILBOX *mb, char *why) {
 
 	mb->why = why;
 
-	if(pthread_mutex_unlock(&mb->lock) < 0) {
-		return;
-	}
+	// if(pthread_mutex_unlock(&mb->lock) < 0) {
+	// 	return;
+	// }
 }
 
 void mb_shutdown(MAILBOX *mb) {
 	if(mb == NULL) {
 		return;
 	}
-
 	mb->is_defunct = 1;
 	sem_post(&mb->sem);
 }
@@ -130,21 +140,24 @@ void mb_add_message(MAILBOX *mb, int msgid, MAILBOX *from, void *body, int lengt
 	if(pthread_mutex_lock(&mb->lock) < 0) {
 		return;
 	}
+	debug("ADD MESSAGE\n");
 
-	MESSAGE message = {};
-	message.msgid = msgid;
-	message.from = from;
-	message.body = body;
-	message.length = length;
+	MESSAGE *message = malloc(sizeof(MESSAGE));
+	message->msgid = msgid;
+	message->from = from;
+	message->body = body;
+	message->length = length;
 
 	if(from != mb) {
 		mb->reference += 1;
+		//TODO: CHANGE TO MB_REF
 	}
+	debug("ADD \n");
 
-	MAILBOX_NODE *mailbox_node = malloc(sizeof(MAILBOX_ENTRY));
-	MAILBOX_ENTRY *entry = mailbox_node->entry;
+	MAILBOX_NODE *mailbox_node = malloc(sizeof(MAILBOX_NODE));
+	MAILBOX_ENTRY *entry = malloc(sizeof(MAILBOX_ENTRY));
 	entry->type = MESSAGE_ENTRY_TYPE;
-	entry->content.message = message;
+	entry->content.message = *message;
 	mailbox_node->entry = entry;
 	mailbox_node->next = NULL;
 
@@ -158,6 +171,7 @@ void mb_add_message(MAILBOX *mb, int msgid, MAILBOX *from, void *body, int lengt
 
 	mb->rear->next = mailbox_node;
 	mb->rear = mailbox_node;
+	mb->count += 1;
 
 	pthread_mutex_unlock(&mb->lock);
 
@@ -173,14 +187,14 @@ void mb_add_notice(MAILBOX *mb, NOTICE_TYPE ntype, int msgid) {
 		return;
 	}
 
-	NOTICE notice = {};
-	notice.msgid = msgid;
-	notice.type = ntype;
+	NOTICE *notice = malloc(sizeof(NOTICE));
+	notice->msgid = msgid;
+	notice->type = ntype;
 
-	MAILBOX_NODE *mailbox_node = malloc(sizeof(MAILBOX_ENTRY));
-	MAILBOX_ENTRY *entry = mailbox_node->entry;
+	MAILBOX_NODE *mailbox_node = malloc(sizeof(MAILBOX_NODE));
+	MAILBOX_ENTRY *entry = malloc(sizeof(MAILBOX_ENTRY));
 	entry->type = NOTICE_ENTRY_TYPE;
-	entry->content.notice = notice;
+	entry->content.notice = *notice;
 
 	if(mb->count == 0) {
 		mb->front = mb->rear = mailbox_node;
@@ -190,6 +204,7 @@ void mb_add_notice(MAILBOX *mb, NOTICE_TYPE ntype, int msgid) {
 
 	mb->rear->next = mailbox_node;
 	mb->rear = mailbox_node;
+	mb->count += 1;
 
 	pthread_mutex_unlock(&mb->lock);
 	sem_post(&mb->sem);
