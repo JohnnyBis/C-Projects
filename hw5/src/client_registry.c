@@ -2,6 +2,7 @@
 #include "client.h"
 #include <pthread.h>
 #include <unistd.h>
+#include <semaphore.h>
 
 typedef struct client_node CLIENT_NODE;
 
@@ -14,6 +15,7 @@ typedef struct client_registry {
 	CLIENT_NODE *head;
 	int total;
 	pthread_mutex_t lock;
+	sem_t sem;
 } CLIENT_REGISTRY;
 
 CLIENT_REGISTRY *creg_init() {
@@ -23,6 +25,11 @@ CLIENT_REGISTRY *creg_init() {
 	}
 
 	if(pthread_mutex_init(&client_reg->lock, NULL) < 0) {
+		free(client_reg);
+		return NULL;
+	}
+
+	if(sem_init(&client_reg->sem, 0, 0) < 0) {
 		free(client_reg);
 		return NULL;
 	}
@@ -67,6 +74,7 @@ CLIENT *creg_register(CLIENT_REGISTRY *cr, int fd) {
 	}
 
 	if(client_ref(new_client, "pointer retained by the registr") == NULL) {
+		pthread_mutex_unlock(&cr->lock);
 		return NULL;
 	} //Total refs = 2
 
@@ -113,10 +121,13 @@ int creg_unregister(CLIENT_REGISTRY *cr, CLIENT *client) {
 			CLIENT_NODE *next_node = current_node->next;
 			prev_node->next = next_node;
 
-			if(pthread_mutex_unlock(&cr->lock) < 0) {
-				return -1;
+			if(cr->head == NULL) {
+				if(pthread_mutex_unlock(&cr->lock) < 0) {
+					return -1;
+				}
+				sem_post(&cr->sem);
 			}
-			//call creg shutdown
+
 			return 0;
 		}
 		prev_node = current_node;
@@ -157,5 +168,21 @@ CLIENT **creg_all_clients(CLIENT_REGISTRY *cr) {
 }
 
 void creg_shutdown_all(CLIENT_REGISTRY *cr) {
-	//TODO
+
+	sem_wait(&cr->sem);
+
+	if(pthread_mutex_lock(&cr->lock) < 0) {
+		return;
+	}
+
+	CLIENT_NODE *current_node = cr->head;
+	while(current_node != NULL) {
+		shutdown(client_get_fd(current_node->client), 2);
+		current_node = current_node->next;
+	}
+
+	if(pthread_mutex_unlock(&cr->lock) < 0) {
+		return;
+	}
+
 }

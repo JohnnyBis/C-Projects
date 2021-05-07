@@ -15,6 +15,7 @@ typedef struct client {
 	char *why;
 	int status;
 	pthread_mutex_t lock;
+	pthread_mutexattr_t attr;
 } CLIENT;
 
 //TODO: Add handle checker if it's already registered.
@@ -29,7 +30,10 @@ CLIENT *client_create(CLIENT_REGISTRY *creg, int fd) {
 		return NULL;
 	}
 
-	if(pthread_mutex_init(&client->lock, NULL) < 0) {
+	pthread_mutexattr_init(&client->attr);
+	pthread_mutexattr_settype(&client->attr, PTHREAD_MUTEX_RECURSIVE);
+
+	if(pthread_mutex_init(&client->lock, &client->attr) < 0) {
 		free(why);
 		free(client);
 		return NULL;
@@ -74,12 +78,10 @@ void client_unref(CLIENT *client, char *why) {
 	if(pthread_mutex_lock(&client->lock) < 0) {
 		return;
 	}
-	//printf("TOTAL REF: %d\n", client->reference);
 	client->reference -= 1;
 	client->why = why;
 
 	if(client->reference == 0) {
-		//printf("DONE\n");
 		free(client);
 	}
 
@@ -96,9 +98,9 @@ int client_login(CLIENT *client, char *handle) {
 
 	//TODO: ADD A NEW LOCK
 
-	// if(pthread_mutex_lock(&client->lock) < 0) {
-	// 	return -1;
-	// }
+	if(pthread_mutex_lock(&client->lock) < 0) {
+		return -1;
+	}
 
 	CLIENT **clients = creg_all_clients(client_registry);
 	for(int i = 0; clients[i] != NULL; i++) {
@@ -121,9 +123,9 @@ int client_login(CLIENT *client, char *handle) {
 	client->user = user;
 	client->mailbox = mailbox;
 
-	// if(pthread_mutex_unlock(&client->lock) < 0) {
-	// 	return -1;
-	// }
+	if(pthread_mutex_unlock(&client->lock) < 0) {
+		return -1;
+	}
 
 	return 0;
 }
@@ -226,12 +228,10 @@ int client_send_packet(CLIENT *user, CHLA_PACKET_HEADER *pkt, void *data) {
 		}
 	}
 
-	//printf("--%s\n", user_get_handle(user->user));
-
 	if(pthread_mutex_unlock(&user->lock) < 0) {
 		return -1;
 	}
-	//printf("SEND PACKET\n");
+
 	return 0;
 }
 

@@ -101,10 +101,6 @@ int main(int argc, char* argv[]){
     // run function charla_client_service().  In addition, you should install
     // a SIGHUP handler, so that receipt of SIGHUP will perform a clean
     // shutdown of the server.
-    // chla_client_service(&c_socket);
-    // fprintf(stderr, "You have to finish implementing main() "
-	   //  "before the server will function.\n");
-    // Closing the socket:
 
     terminate(EXIT_FAILURE);
 }

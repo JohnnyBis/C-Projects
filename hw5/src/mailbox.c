@@ -173,7 +173,6 @@ void mb_add_message(MAILBOX *mb, int msgid, MAILBOX *from, void *body, int lengt
 	mb->count += 1;
 
 	pthread_mutex_unlock(&mb->lock);
-
 	sem_post(&mb->sem);
 }
 
