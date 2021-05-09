@@ -96,8 +96,6 @@ int client_login(CLIENT *client, char *handle) {
 		return -1;
 	}
 
-	//TODO: ADD A NEW LOCK
-
 	if(pthread_mutex_lock(&client->lock) < 0) {
 		return -1;
 	}

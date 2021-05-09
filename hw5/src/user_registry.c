@@ -36,6 +36,8 @@ USER_REGISTRY *ureg_init() {
 	}
 
 	user_registry->size = 0;
+	user_registry->registry_head = NULL;
+
 	return user_registry;
 }
 

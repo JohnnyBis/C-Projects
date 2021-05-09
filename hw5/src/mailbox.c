@@ -63,6 +63,8 @@ MAILBOX *mb_init(char *handle) {
 	mailbox->rear = NULL;
 	mailbox->why = why;
 	mailbox->handle = new_handle;
+	mailbox->is_defunct = 0;
+	mailbox->reference = 1;
 
 	return mailbox;
 }
@@ -101,7 +103,6 @@ void mb_unref(MAILBOX *mb, char *why) {
 	// 	return;
 	// }
 	debug("DECREASE\n");
-	printf("INFO: %d\n", mb->reference);
 
 	mb->reference -= 1;
 
